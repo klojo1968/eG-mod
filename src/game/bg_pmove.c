@@ -55,14 +55,23 @@ typedef enum
 #define PM_FIXEDPHYSICSFPS      cgs.fixedphysicsfps
 #define PM_PRONEDELAY           cgs.pronedelay
 
+#define PM_DOUBLE_JUMP          cgs.doubleJump
+#define PM_DOUBLE_JUMP_HEIGHT   cgs.doubleJumpHeight
+
 #else
 extern vmCvar_t g_fixedphysics;
 extern vmCvar_t g_fixedphysicsfps;
 extern vmCvar_t g_pronedelay;
 
+extern vmCvar_t g_doubleJump;
+extern vmCvar_t g_doubleJumpHeight;
+
 #define PM_FIXEDPHYSICS         g_fixedphysics.integer
 #define PM_FIXEDPHYSICSFPS      g_fixedphysicsfps.integer
 #define PM_PRONEDELAY           g_pronedelay.integer
+
+#define PM_DOUBLE_JUMP          g_doubleJump.integer
+#define PM_DOUBLE_JUMP_HEIGHT   g_doubleJumpHeight.value
 
 #endif
 
@@ -884,6 +893,86 @@ static qboolean PM_CheckWaterJump(void)
 }
 
 /**
+ * @brief PM_CheckDoubleJump
+ * @return
+ */
+static qboolean PM_CheckDoubleJump(void)
+{
+	if(PM_DOUBLE_JUMP < 1 || PM_DOUBLE_JUMP > 3)
+	{
+		return qfalse;
+	}
+
+	if (pm->ps->pm_flags & PMF_DOUBLEJUMPING)
+	{
+		return qfalse;
+	}
+
+	if (pm->ps->eFlags & EF_PRONE)
+	{
+		return qfalse;
+	}
+
+	if(PM_DOUBLE_JUMP == 1)
+	{
+		// jaymod style
+		if (pm->cmd.serverTime - pm->pmext->jumpTime >= 850)
+		{
+			return qfalse;
+		}
+	}
+	else if(PM_DOUBLE_JUMP == 3)
+	{
+		// etpub style
+		// Only allow double jump when going up
+		if (pm->ps->velocity[2] <= 0)
+		{
+			return qfalse;
+		}
+	}
+	// else nitmod style (2), no check
+
+	if (pm->ps->pm_flags & PMF_RESPAWNED)
+	{
+		return qfalse;		// don't allow jump until all buttons are up
+	}
+
+	if (pm->cmd.upmove < 10)
+	{
+		// Not holding jump
+		return qfalse;
+	}
+
+	// Must wait for jump to be released
+	if (pm->ps->pm_flags & PMF_JUMP_HELD)
+	{
+		// clear upmove so cmdscale doesn't lower running speed
+		pm->cmd.upmove = 0;
+		return qfalse;
+	}
+
+	pml.groundPlane = qfalse;
+	pml.walking = qfalse;
+	pm->ps->pm_flags |= PMF_JUMP_HELD;
+
+	pm->ps->groundEntityNum = ENTITYNUM_NONE;
+	pm->ps->velocity[2] = JUMP_VELOCITY * PM_DOUBLE_JUMP_HEIGHT;
+
+	if (pm->cmd.forwardmove >= 0)
+	{
+		BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_JUMP, qfalse);
+		pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP;
+	}
+	else
+	{
+		BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_JUMPBK, qfalse);
+		pm->ps->pm_flags |= PMF_BACKWARDS_JUMP;
+	}
+
+	return qtrue;
+}
+
+/**
  * @brief Sets mins, maxs, and pm->ps->viewheight
  * @return
  */
@@ -1065,6 +1154,9 @@ static qboolean PM_CheckProne(void)
 				// don't jump for a bit
 				pm->pmext->jumpTime = pm->cmd.serverTime - 650;
 				pm->ps->jumpTime    = pm->cmd.serverTime - 650;
+
+				// also don't allow a double jump
+				pm->ps->pm_flags |= PMF_DOUBLEJUMPING;
 			}
 		}
 	}
@@ -1260,6 +1352,16 @@ static void PM_AirMove(void)
 	float     wishspeed;
 	float     scale;
 	usercmd_t cmd;
+
+	if (PM_CheckDoubleJump())
+	{
+		pm->ps->pm_flags |=  PMF_DOUBLEJUMPING;
+
+		if (pm->waterlevel > 1)
+			PM_WaterMove();
+
+		pm->ps->jumpTime = pm->cmd.serverTime;
+	}
 
 	PM_Friction();
 
@@ -1939,6 +2041,8 @@ static void PM_GroundTrace(void)
 
 	pml.groundPlane = qtrue;
 	pml.walking     = qtrue;
+
+	pm->ps->pm_flags &= ~PMF_DOUBLEJUMPING;
 
 	// hitting solid ground will end a waterjump
 	if (pm->ps->pm_flags & PMF_TIME_WATERJUMP)
