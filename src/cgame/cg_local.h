@@ -2667,6 +2667,9 @@ typedef struct cgs_s
 
 	int dynamiteCounter;
 
+	int doubleJump;
+	float doubleJumpHeight;
+
 } cgs_t;
 
 //==============================================================================

@@ -2199,6 +2199,9 @@ extern vmCvar_t g_floodWait;
 
 extern vmCvar_t g_dynamiteCounter;
 
+extern vmCvar_t g_doubleJump;
+extern vmCvar_t g_doubleJumpHeight;
+
 /**
  * @struct GeoIPTag
  * @typedef GeoIP

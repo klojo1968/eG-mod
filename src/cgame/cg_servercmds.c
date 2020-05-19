@@ -234,6 +234,9 @@ void CG_ParseServerinfo(void)
 	trap_Cvar_Set("cg_ui_voteFlags", ((authLevel.integer == RL_NONE) ? Info_ValueForKey(info, "voteFlags") : "0"));
 
 	cgs.dynamiteCounter = atoi(Info_ValueForKey(info, "g_dynamiteCounter"));
+
+	cgs.doubleJump = atoi(Info_ValueForKey(info, "g_doubleJump"));
+	cgs.doubleJumpHeight = atof(Info_ValueForKey(info, "g_doubleJumpHeight"));
 }
 
 /**
