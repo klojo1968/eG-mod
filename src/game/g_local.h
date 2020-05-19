@@ -2225,6 +2225,9 @@ extern vmCvar_t g_etltv_flags;
 
 extern vmCvar_t g_dynamiteCounter;
 
+extern vmCvar_t g_doubleJump;
+extern vmCvar_t g_doubleJumpHeight;
+
 /**
  * @struct GeoIPTag
  * @typedef GeoIP

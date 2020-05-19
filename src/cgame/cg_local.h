@@ -2686,6 +2686,9 @@ typedef struct cgs_s
 	sampledStat_t sampledStat;  // fps client sample data
 
 	int dynamiteCounter;
+
+	int doubleJump;
+	float doubleJumpHeight;
 } cgs_t;
 
 //==============================================================================
