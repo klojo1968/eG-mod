@@ -2230,11 +2230,11 @@ void G_ArmDynamite(gentity_t *traceEnt, gentity_t *ent)
 	traceEnt->s.otherEntityNum = ent->s.number;
 
 	// arm it
-	traceEnt->nextthink = level.time + 30000;
+	traceEnt->nextthink = level.time + g_dynamiteCounter.integer * 1000;
 	traceEnt->think     = G_ExplodeMissile;
 
 	// moved down here to prevent two prints when dynamite IS near objective
-	trap_SendServerCommand(ent - g_entities, "cp \"Dynamite is now armed with a 30 second timer!\" 1");
+	trap_SendServerCommand(ent - g_entities, va("cp \"Dynamite is now armed with a %d second timer!\" 1", g_dynamiteCounter.integer));
 
 	// not planted near objective, nothing to do more
 	if (hit)

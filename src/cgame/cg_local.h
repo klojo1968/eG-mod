@@ -2804,6 +2804,8 @@ typedef struct cgs_s
 
 	int scoresCount;
 	char scores[MAX_SCORES_CMDS][MAX_STRING_CHARS];
+
+	int dynamiteCounter;
 } cgs_t;
 
 //==============================================================================
