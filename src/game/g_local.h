@@ -2004,6 +2004,9 @@ extern g_campaignInfo_t g_campaigns[];
 #define G_SpectatorInactivityValue (g_spectatorInactivity.integer ? g_spectatorInactivity.integer : 60)
 
 #define ETTV_PROTOCOL_VERSION 284
+
+extern vmCvar_t g_dynamiteCounter;
+
 /**
  * @struct GeoIPTag
  * @typedef GeoIP

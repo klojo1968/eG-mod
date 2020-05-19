@@ -1326,7 +1326,7 @@ static void CG_Missile(centity_t *cent)
 			// add dynamite counter to floating string list
 			if (cgs.clientinfo[cg.clientNum].shoutcaster)
 			{
-				timer = va("%i", 30 - (cg.time - cent->currentState.effect1Time) / 1000);
+				timer = va("%i", cgs.dynamiteCounter - (cg.time - cent->currentState.effect1Time) / 1000);
 				CG_EntityFloatText(cent, timer, 8);
 			}
 		}
