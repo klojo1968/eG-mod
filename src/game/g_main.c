@@ -380,6 +380,8 @@ vmCvar_t g_floodProtection;
 vmCvar_t g_floodLimit;
 vmCvar_t g_floodWait;
 
+vmCvar_t g_dynamiteCounter; // default 30
+
 cvarTable_t gameCvarTable[] =
 {
 	// don't override the cheat state set by the system
@@ -676,6 +678,8 @@ cvarTable_t gameCvarTable[] =
 	{ &g_floodProtection,                 "g_floodProtection",                 "1",                          CVAR_ARCHIVE | CVAR_SERVERINFO,                  0, qtrue,  qfalse },
 	{ &g_floodLimit,                      "g_floodLimit",                      "5",                          CVAR_ARCHIVE,                                    0, qtrue,  qfalse },
 	{ &g_floodWait,                       "g_floodWait",                       "1000",                       CVAR_ARCHIVE,                                    0, qtrue,  qfalse },
+
+	{ &g_dynamiteCounter,                 "g_dynamiteCounter",                 "30",                         CVAR_SERVERINFO | CVAR_ARCHIVE,                  0, qfalse, qfalse },
 };
 
 /**
