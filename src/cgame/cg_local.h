@@ -2806,6 +2806,9 @@ typedef struct cgs_s
 	char scores[MAX_SCORES_CMDS][MAX_STRING_CHARS];
 
 	int dynamiteCounter;
+
+	int doubleJump;
+	float doubleJumpHeight;
 } cgs_t;
 
 //==============================================================================
