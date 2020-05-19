@@ -2223,6 +2223,8 @@ extern vmCvar_t g_floodWait;
 #define ETTV_PROTOCOL_VERSION 284
 extern vmCvar_t g_etltv_flags;
 
+extern vmCvar_t g_dynamiteCounter;
+
 /**
  * @struct GeoIPTag
  * @typedef GeoIP

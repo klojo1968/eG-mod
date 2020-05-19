@@ -2685,6 +2685,7 @@ typedef struct cgs_s
 	int sv_fps;                 // FPS server wants to send
 	sampledStat_t sampledStat;  // fps client sample data
 
+	int dynamiteCounter;
 } cgs_t;
 
 //==============================================================================
