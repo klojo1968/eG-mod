@@ -1,0 +1,10 @@
+default:
+  image: debian:buster-slim
+
+build:
+  before_script:
+  - apt-get update
+  - apt-get install --no-install-recommends -y ca-certificates git cmake make gcc-multilib g++-multilib
+  - git submodule update --init
+  script:
+  - ./easybuild.sh -32 -mod -server -no-ssl -noextra
