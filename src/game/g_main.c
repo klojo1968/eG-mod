@@ -2701,6 +2701,9 @@ void G_InitGame(int levelTime, int randomSeed, int restart, int etLegacyServer, 
 	G_Printf("%sNo Lua API available\n", S_COLOR_BLUE);
 #endif
 
+	// load customized tables
+	BG_CustomizeTables();
+
 	// parse the key/value pairs and spawn gentities
 	G_SpawnEntitiesFromString();
 

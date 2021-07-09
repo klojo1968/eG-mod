@@ -4893,3 +4893,118 @@ void BG_LegsCollisionBoxOffset(vec3_t viewangles, int eFlags, vec3_t legsOffset)
 		VectorScale(flatforward, -32, legsOffset);
 	}
 }
+
+#define IF_POSITIVE_INT_SET_WEAPON_TABLE(key) \
+	if (!Q_stricmp(token.string, #key)) \
+	{ \
+		if (PC_Int_Parse(handle, &value) && value >= 0) \
+		{ \
+			GetWeaponTableData(weaponNum)->key = value; \
+		} \
+	}
+#define IF_STRICTLY_POSITIVE_INT_SET_WEAPON_TABLE(key) \
+	if (!Q_stricmp(token.string, #key)) \
+	{ \
+		if (PC_Int_Parse(handle, &value) && value > 0) \
+		{ \
+			GetWeaponTableData(weaponNum)->key = value; \
+		} \
+	}
+#define IF_POSITIVE_INT_CAPPED_SET_WEAPON_TABLE(key, max) \
+	if (!Q_stricmp(token.string, #key)) \
+	{ \
+		if (PC_Int_Parse(handle, &value) && value >= 0 && value < max) \
+		{ \
+			GetWeaponTableData(weaponNum)->key = value; \
+		} \
+	}
+
+/**
+ * @brief BG_CustomizeWeaponTable
+ * @param[in] weaponNum
+ */
+static void BG_CustomizeWeaponTable(weapon_t weaponNum)
+{
+	const char *filename;
+	int        handle;
+	pc_token_t token;
+	int        value;
+
+	if (!GetWeaponTableData(weaponNum)->weapFile)
+	{
+		return;
+	}
+
+	filename = va("weapontable/%s.weapontable", GetWeaponTableData(weaponNum)->weapFile);
+	handle = trap_PC_LoadSource(filename);
+	if (!handle)
+	{
+		return;
+	}
+
+	if (!trap_PC_ReadToken(handle, &token) || Q_stricmp(token.string, "weaponTable"))
+	{
+#ifdef GAMEDLL
+		PC_SourceWarning(handle, "expected 'weaponTable'");
+#endif
+		goto clean;
+	}
+
+	if (!trap_PC_ReadToken(handle, &token) || Q_stricmp(token.string, "{"))
+	{
+#ifdef GAMEDLL
+		PC_SourceWarning(handle, "expected '{'");
+#endif
+		goto clean;
+	}
+
+	while (1)
+	{
+		if (!trap_PC_ReadToken(handle, &token))
+		{
+			break;
+		}
+
+		if (token.string[0] == '}')
+		{
+			break;
+		}
+
+		IF_POSITIVE_INT_CAPPED_SET_WEAPON_TABLE(skillBased, SK_NUM_SKILLS)
+#ifdef GAMEDLL
+		else IF_STRICTLY_POSITIVE_INT_SET_WEAPON_TABLE(damage)
+#endif
+		else IF_STRICTLY_POSITIVE_INT_SET_WEAPON_TABLE(maxAmmo)
+		else IF_STRICTLY_POSITIVE_INT_SET_WEAPON_TABLE(maxClip)
+		else IF_POSITIVE_INT_SET_WEAPON_TABLE(reloadTime)
+		else IF_STRICTLY_POSITIVE_INT_SET_WEAPON_TABLE(fireDelayTime)
+		else IF_STRICTLY_POSITIVE_INT_SET_WEAPON_TABLE(nextShotTime)
+		else IF_POSITIVE_INT_SET_WEAPON_TABLE(maxHeat)
+		else IF_POSITIVE_INT_SET_WEAPON_TABLE(coolRate)
+		else IF_POSITIVE_INT_SET_WEAPON_TABLE(heatRecoveryTime)
+#ifdef GAMEDLL
+		else
+		{
+			PC_SourceWarning(handle, "unknown token '%s'", token.string);
+		}
+#endif
+	}
+
+clean:
+	trap_PC_FreeSource(handle);
+}
+
+/**
+ * @brief BG_CustomizeTables
+ */
+void BG_CustomizeTables(void)
+{
+	weapon_t       weaponNum;
+	meansOfDeath_t modNum;
+	int            classNum;
+
+	for (weaponNum = WP_KNIFE; weaponNum < WP_NUM_WEAPONS; weaponNum++)
+	{
+		BG_CustomizeWeaponTable(weaponNum);
+	}
+}

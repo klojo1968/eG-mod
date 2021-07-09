@@ -1975,6 +1975,9 @@ static void CG_RegisterGraphics(void)
 		CG_RegisterItemVisuals(i);
 	}
 
+	// load customized tables
+	BG_CustomizeTables();
+
 	// cgs.media.grenadeExplosionShader = trap_R_RegisterShader("grenadeExplosion"); // unused FIXME: remove from shader def
 	// cgs.media.rocketExplosionShader = trap_R_RegisterShader("rocketExplosion");   // unused
 

@@ -3312,4 +3312,6 @@ typedef struct client_vote_s
 #define CREATE_HASH                         76308
 #define DELETE_HASH                         76202
 
+void BG_CustomizeTables();
+
 #endif // #ifndef INCLUDE_BG_PUBLIC_H
