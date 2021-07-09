@@ -4217,25 +4217,24 @@ void BG_AdjustAAGunMuzzleForBarrel(vec_t *origin, vec_t *forward, vec_t *right, 
  * @brief PC_SourceWarning
  * @param[in] handle
  * @param[in] format
- * @note Unused
+ */
 void PC_SourceWarning(int handle, const char *format, ...)
 {
-    int         line;
-    char        filename[MAX_QPATH];
-    va_list     argptr;
-    static char string[4096];
+	int         line;
+	char        filename[MAX_QPATH];
+	va_list     argptr;
+	static char string[4096];
 
-    va_start(argptr, format);
-    Q_vsnprintf(string, sizeof(string), format, argptr);
-    va_end(argptr);
+	va_start(argptr, format);
+	Q_vsnprintf(string, sizeof(string), format, argptr);
+	va_end(argptr);
 
-    filename[0] = '\0';
-    line        = 0;
-    trap_PC_SourceFileAndLine(handle, filename, &line);
+	filename[0] = '\0';
+	line        = 0;
+	trap_PC_SourceFileAndLine(handle, filename, &line);
 
-    Com_Printf(S_COLOR_YELLOW "WARNING: %s, line %d: %s\n", filename, line, string);
+	Com_Printf(S_COLOR_YELLOW "WARNING: %s, line %d: %s\n", filename, line, string);
 }
-*/
 
 /**
  * @brief PC_SourceError
