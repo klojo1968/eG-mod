@@ -4994,6 +4994,214 @@ clean:
 	trap_PC_FreeSource(handle);
 }
 
+static int BG_FindWeaponNumByName(char *weap)
+{
+	weapon_t       weaponNum;
+
+	for (weaponNum = WP_KNIFE; weaponNum < WP_NUM_WEAPONS; weaponNum++)
+	{
+		if (!Q_stricmp(GetWeaponTableData(weaponNum)->weapFile, weap))
+		{
+			return weaponNum;
+		}
+	}
+	return WP_NONE;
+}
+
+static qboolean BG_ParsePlayerClass(int handle, bg_weaponclass_t *wpClass, int length)
+{
+	pc_token_t       token;
+
+	if (!trap_PC_ReadToken(handle, &token) || Q_stricmp(token.string, "{"))
+	{
+#ifdef GAMEDLL
+		PC_SourceWarning(handle, "expected '{'");
+#endif
+		return qtrue;
+	}
+
+	while (1)
+	{
+		if (!trap_PC_ReadToken(handle, &token))
+		{
+			break;
+		}
+
+		if (token.string[0] == '}')
+		{
+			break;
+		}
+
+		// TODO read weapon name
+		// TODO subfunction for weapon part
+
+		/*
+		if (!Q_stricmp(token.string, "minSkillLevel"))
+		{
+		}
+		else if (!Q_stricmp(token.string, "startingAmmo"))
+		{
+		}
+		else if (!Q_stricmp(token.string, "startingClip"))
+		{
+		}
+#ifdef GAMEDLL
+		else
+		{
+			PC_SourceWarning(handle, "unknown token '%s'", token.string);
+		}
+#endif
+		*/
+	}
+
+	return qfalse;
+}
+
+/**
+ * @brief BG_CustomizePlayerClasses
+ * @param[in] teamNum
+ * @param[in] classNum
+ */
+static void BG_CustomizePlayerClasses(int teamNum, int classNum)
+{
+	const char *filename;
+	int              handle;
+	pc_token_t       token;
+	bg_playerclass_t *info;
+	qboolean         err;
+
+	filename = va("playerclass/%s_%s.playerclass", BG_TeamnameForNumber(teamNum),
+			BG_ClassnameForNumberFilename(classNum));
+	handle = trap_PC_LoadSource(filename);
+	if (!handle)
+	{
+		return;
+	}
+
+	info = GetPlayerClassesData(teamNum, classNum);
+
+	if (!trap_PC_ReadToken(handle, &token) || Q_stricmp(token.string, "playerClass"))
+	{
+#ifdef GAMEDLL
+		PC_SourceWarning(handle, "expected 'playerClass'");
+#endif
+		goto clean;
+	}
+
+	if (!trap_PC_ReadToken(handle, &token) || Q_stricmp(token.string, "{"))
+	{
+#ifdef GAMEDLL
+		PC_SourceWarning(handle, "expected '{'");
+#endif
+		goto clean;
+	}
+
+	err = qfalse;
+
+	while (1)
+	{
+		if (!trap_PC_ReadToken(handle, &token))
+		{
+			break;
+		}
+
+		if (token.string[0] == '}')
+		{
+			break;
+		}
+
+		if (!Q_stricmp(token.string, "knife"))
+		{
+			err = BG_ParsePlayerClass(handle, &info->classKnifeWeapon, 1);
+		}
+		else if (!Q_stricmp(token.string, "primary"))
+		{
+			err = BG_ParsePlayerClass(handle, info->classPrimaryWeapons, MAX_WEAPS_PER_CLASS);
+		}
+		else if (!Q_stricmp(token.string, "secondary"))
+		{
+			err = BG_ParsePlayerClass(handle, info->classSecondaryWeapons, MAX_WEAPS_PER_CLASS);
+		}
+		else if (!Q_stricmp(token.string, "grenade"))
+		{
+			err = BG_ParsePlayerClass(handle, &info->classGrenadeWeapon, 1);
+		}
+		else if (!Q_stricmp(token.string, "misc"))
+		{
+			err = BG_ParsePlayerClass(handle, info->classMiscWeapons, MAX_WEAPS_PER_CLASS);
+		}
+#ifdef GAMEDLL
+		else
+		{
+			PC_SourceWarning(handle, "unknown token '%s'", token.string);
+		}
+#endif
+
+		if (err)
+		{
+			goto clean;
+		}
+	}
+
+clean:
+	trap_PC_FreeSource(handle);
+}
+
+/**
+ * @brief BG_CustomizeModTable
+ * @param[in] modNum
+ */
+static void BG_CustomizeModTable(meansOfDeath_t modNum)
+{
+	const char *filename;
+	int        handle;
+	pc_token_t token;
+
+	filename = va("modtable/%s.modtable", GetMODTableData(modNum)->modName);
+	handle = trap_PC_LoadSource(filename);
+	if (!handle)
+	{
+		return;
+	}
+
+	if (!trap_PC_ReadToken(handle, &token) || Q_stricmp(token.string, "modTable"))
+	{
+#ifdef GAMEDLL
+		PC_SourceWarning(handle, "expected 'modTable'");
+#endif
+		goto clean;
+	}
+
+	if (!trap_PC_ReadToken(handle, &token) || Q_stricmp(token.string, "{"))
+	{
+#ifdef GAMEDLL
+		PC_SourceWarning(handle, "expected '{'");
+#endif
+		goto clean;
+	}
+
+	while (1)
+	{
+		if (!trap_PC_ReadToken(handle, &token))
+		{
+			break;
+		}
+
+		if (token.string[0] == '}')
+		{
+			break;
+		}
+
+#ifdef GAMEDLL
+		// TODO else
+		PC_SourceWarning(handle, "unknown token '%s'", token.string);
+#endif
+	}
+
+clean:
+	trap_PC_FreeSource(handle);
+}
+
 /**
  * @brief BG_CustomizeTables
  */
@@ -5006,5 +5214,14 @@ void BG_CustomizeTables(void)
 	for (weaponNum = WP_KNIFE; weaponNum < WP_NUM_WEAPONS; weaponNum++)
 	{
 		BG_CustomizeWeaponTable(weaponNum);
+	}
+	for (classNum = 0; classNum < NUM_PLAYER_CLASSES; classNum++)
+	{
+		BG_CustomizePlayerClasses(TEAM_AXIS, classNum);
+		BG_CustomizePlayerClasses(TEAM_ALLIES, classNum);
+	}
+	for (modNum = MOD_UNKNOWN; modNum < MOD_NUM_MODS; modNum++)
+	{
+		BG_CustomizeModTable(modNum);
 	}
 }
