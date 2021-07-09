@@ -2813,7 +2813,7 @@ int trap_PC_SourceFileAndLine(int handle, char *filename, int *line);
 int trap_PC_UnReadToken(int handle);
 
 void PC_SourceError(int handle, const char *format, ...);
-//void PC_SourceWarning(int handle, const char *format, ...); // Unused
+void PC_SourceWarning(int handle, const char *format, ...);
 
 #ifdef GAMEDLL
 const char *PC_String_Parse(int handle);
