@@ -385,6 +385,8 @@ vmCvar_t g_dynamiteCounter; // default 30
 vmCvar_t g_doubleJump; // 0 - off, 1 - jaymod style, 2 - nitmod style, 3 - etpub style
 vmCvar_t g_doubleJumpHeight; // default 1.4
 
+vmCvar_t g_shortcuts;
+
 cvarTable_t gameCvarTable[] =
 {
 	// don't override the cheat state set by the system
@@ -686,6 +688,8 @@ cvarTable_t gameCvarTable[] =
 
 	{ &g_doubleJump,                      "g_doubleJump",                      "0",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },
 	{ &g_doubleJumpHeight,                "g_doubleJumpHeight",                "1.4",                        CVAR_SERVERINFO,                                 0, qfalse, qfalse },
+
+	{ &g_shortcuts,                       "g_shortcuts",                       "0",                          0,                                               0, qtrue,  qtrue  },
 };
 
 /**

@@ -2800,6 +2800,140 @@ void G_SayTo(gentity_t *ent, gentity_t *other, int mode, int color, const char *
 /**
  * @brief G_Say
  * @param[in] ent
+ * @param[in] output
+ * @param[in] outputSize
+ * @param[in] chatText
+ * @param[in] color
+ */
+static void G_ParseShortcuts(gentity_t *ent, char *output, unsigned int outputSize, const char *chatText, int color)
+{
+	// FIXME change Com_sprintf calls to do not overflow? (prints a warning to server console)
+	unsigned int outputLength = 0;
+	unsigned int chatTextLength = strlen(chatText);
+	unsigned int i = 0;
+	char *occur;
+	unsigned int beforeOccur;
+	int isClientName;
+	char *replace;
+	int client;
+	int weapon;
+
+	while (outputLength < outputSize && i < chatTextLength)
+	{
+		occur = strchr(chatText + i, '[');
+		if (occur == NULL || occur[1] == '\0' || occur[2] == '\0')
+		{
+			Com_sprintf(output + outputLength, outputSize - outputLength, "%s", chatText + i); // FIXME
+			break;
+		}
+		beforeOccur = occur - (chatText + i);
+		if (beforeOccur > 0)
+		{
+			if (Com_sprintf(output + outputLength, outputSize - outputLength, "%.*s", beforeOccur, chatText + i) >= outputSize - outputLength) // FIXME
+			{
+				break;
+			}
+			outputLength += beforeOccur;
+			i += beforeOccur;
+		}
+		// FIXME place usual shortcut characters first rather than etpub docs order
+		if (occur[2] != ']' || strchr("adhklnrpswt", occur[1]) == NULL)
+		{
+			Com_sprintf(output + outputLength, outputSize - outputLength, "["); // FIXME
+			outputLength++;
+			i++;
+		}
+		else
+		{
+			isClientName = 1;
+			client = -1;
+			replace = NULL;
+			if (occur[1] == 'a')
+			{
+				client = ent->client->pers.lastammo_client;
+			}
+			else if (occur[1] == 'd')
+			{
+				client = ent->client->pers.lastkiller_client;
+			}
+			else if (occur[1] == 'h')
+			{
+				client = ent->client->pers.lasthealth_client;
+			}
+			else if (occur[1] == 'k')
+			{
+				client = ent->client->pers.lastkilled_client;
+			}
+			else if (occur[1] == 'l')
+			{
+				isClientName = 0;
+				// FIXME get location name like in (fire)team chat prefix
+				replace = BG_GetLocationString(ent->client->ps.origin[0], ent->client->ps.origin[1]);
+			}
+			else if (occur[1] == 'n')
+			{
+				replace = ent->client->pers.netname;
+			}
+			else if (occur[1] == 'r')
+			{
+				client = ent->client->pers.lastrevive_client;
+			}
+			else if (occur[1] == 'p')
+			{
+				// TODO last player you looked at
+			}
+			else if (occur[1] == 's')
+			{
+				isClientName = 0;
+				replace = va("%d", ent->health);
+			}
+			else if (occur[1] == 'w')
+			{
+				isClientName = 0;
+				weapon = ent->client->ps.weapon;
+				if (weapon > 0)
+				{
+					replace = (char *)bg_itemlist[weaponTable[weapon].item].pickup_name;
+				}
+			}
+			else if (occur[1] == 't')
+			{
+				isClientName = 0;
+				// TODO
+			}
+			if (replace == NULL)
+			{
+				replace = "*unknown*";
+			}
+			// FIXME do not count on Com_sprintf return value?
+			if (isClientName)
+			{
+				if (client >= 0)
+				{
+					replace = level.clients[client].pers.netname;
+				}
+				if (outputLength + 2 + strlen(replace) + 2 + 1 > outputSize)
+				{
+					break;
+				}
+				outputLength += Com_sprintf(output + outputLength, outputSize - outputLength, S_COLOR_WHITE "%s%c%c", replace, Q_COLOR_ESCAPE, color);
+			}
+			else
+			{
+				if (outputLength + strlen(replace) + 1 > outputSize)
+				{
+					break;
+				}
+				outputLength += Com_sprintf(output + outputLength, outputSize - outputLength, "%s", replace);
+			}
+			i += 3;
+		}
+	}
+}
+
+/**
+ * @brief G_Say
+ * @param[in] ent
  * @param[in] target
  * @param[in] mode
  * @param[in] chatText
@@ -2838,7 +2972,14 @@ void G_Say(gentity_t *ent, gentity_t *target, int mode, const char *chatText)
 		break;
 	}
 
-	Q_strncpyz(text, chatText, sizeof(text));
+	if (g_shortcuts.integer)
+	{
+		G_ParseShortcuts(ent, text, sizeof(text), chatText, color);
+	}
+	else
+	{
+		Q_strncpyz(text, chatText, sizeof(text));
+	}
 
 	if (target)
 	{

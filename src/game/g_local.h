@@ -2202,6 +2202,8 @@ extern vmCvar_t g_dynamiteCounter;
 extern vmCvar_t g_doubleJump;
 extern vmCvar_t g_doubleJumpHeight;
 
+extern vmCvar_t g_shortcuts;
+
 /**
  * @struct GeoIPTag
  * @typedef GeoIP
