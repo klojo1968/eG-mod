@@ -1,0 +1,18 @@
+stages:
+- build
+
+build-linux-i386:
+  stage: build
+  image: ghcr.io/exagone313/etlegacy-mirror-lnx-build:20230312120546
+  before_script:
+  - git submodule update --init
+  script:
+  - ./easybuild.sh build -32 -mod -no-ssl -noextra
+
+build-linux-x86_64:
+  stage: build
+  image: ghcr.io/exagone313/etlegacy-mirror-lnx-build:20230312120546
+  before_script:
+  - git submodule update --init
+  script:
+  - ./easybuild.sh build -64 -mod -no-ssl -noextra
