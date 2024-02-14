@@ -805,6 +805,9 @@ extern vmCvar_t tvg_autoAction;
 
 #define TVG_InactivityValue (tvg_inactivity.integer ? tvg_inactivity.integer : 60)
 
+extern vmCvar_t g_doubleJump;
+extern vmCvar_t g_doubleJumpHeight;
+
 // flood protection
 extern vmCvar_t tvg_floodProtection;
 extern vmCvar_t tvg_floodLimit;
