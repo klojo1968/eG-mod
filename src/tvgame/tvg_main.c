@@ -338,6 +338,9 @@ vmCvar_t g_floodProtection;
 vmCvar_t g_floodLimit;
 vmCvar_t g_floodWait;
 
+vmCvar_t g_doubleJump; // 0 - off, 1 - jaymod style, 2 - nitmod style, 3 - etpub style
+vmCvar_t g_doubleJumpHeight; // default 1.4
+
 cvarTable_t gameCvarTable[] =
 {
 	// don't override the cheat state set by the system
@@ -608,6 +611,9 @@ cvarTable_t gameCvarTable[] =
 	{ &g_floodProtection,                 "g_floodProtection",                 "1",                          CVAR_ARCHIVE | CVAR_SERVERINFO,                  0, qtrue,  qfalse },
 	{ &g_floodLimit,                      "g_floodLimit",                      "5",                          CVAR_ARCHIVE,                                    0, qtrue,  qfalse },
 	{ &g_floodWait,                       "g_floodWait",                       "1000",                       CVAR_ARCHIVE,                                    0, qtrue,  qfalse },
+
+	{ &g_doubleJump,                      "g_doubleJump",                      "0",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },
+	{ &g_doubleJumpHeight,                "g_doubleJumpHeight",                "1.4",                        CVAR_SERVERINFO,                                 0, qfalse, qfalse },
 };
 
 /**
