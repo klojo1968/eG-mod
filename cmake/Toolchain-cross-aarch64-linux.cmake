@@ -18,7 +18,7 @@ SET (CMAKE_NM {COMPILER_PREFIX}-nm CACHE STRING "Set the cross-compiler tool NM"
 SET (CMAKE_OBJCOPY ${COMPILER_PREFIX}-objcopy CACHE STRING "Set the cross-compiler tool OBJCOPY" FORCE)
 SET (CMAKE_OBJDUMP ${COMPILER_PREFIX}-objdump CACHE STRING "Set the cross-compiler tool OBJDUMP" FORCE)
 SET (CMAKE_RANLIB ${COMPILER_PREFIX}-ranlib CACHE STRING "Set the cross-compiler tool RANLIB" FORCE)
-SET (CMAKE_STRIP {COMPILER_PREFIX}-strip CACHE STRING "Set the cross-compiler tool RANLIB" FORCE)
+SET (CMAKE_STRIP ${COMPILER_PREFIX}-strip CACHE STRING "Set the cross-compiler tool STRIP" FORCE)
 
 # adjust the default behaviour of the FIND_XXX() commands:
 # search headers and libraries in the target environment, search
