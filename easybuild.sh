@@ -252,10 +252,10 @@ print_startup() {
     detectos
     echo
     checkapp autoconf
-    checkapp libtoolize
+    checkapp libtoolize 0
     checkapp cmake
-    checkapp gcc
-    checkapp g++
+    checkapp gcc 0
+    checkapp g++ 0
     checkapp clang 0
     checkapp clang++ 0
     checkapp git 0
