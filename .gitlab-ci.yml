@@ -1,18 +1,93 @@
 stages:
+- prebuild
 - build
+
+variables:
+  CI: "true"
+  CI_ETL_DESCRIBE: "etbloat-${CI_COMMIT_SHORT_SHA}"
+  CI_ETL_TAG: "${CI_COMMIT_BRANCH}${CI_COMMIT_TAG}"
+
+make-windows-builder:
+  stage: prebuild
+  rules:
+  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    changes:
+    - misc/docker/windows-builder.Dockerfile
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+  - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+  - /kaniko/executor --context $CI_PROJECT_DIR/misc/docker --dockerfile $CI_PROJECT_DIR/misc/docker/windows-builder.Dockerfile --destination $CI_REGISTRY_IMAGE/windows-builder:latest --push-retry 10
 
 build-linux-i386:
   stage: build
-  image: ghcr.io/exagone313/etlegacy-mirror-lnx-build:20230312120546
+  image: ghcr.io/exagone313/etlegacy-mirror-lnx-build:20240201125503
   before_script:
   - git submodule update --init
+  - ./easybuild.sh clean
   script:
   - ./easybuild.sh build -32 -mod -no-ssl -noextra
+  artifacts:
+    paths:
+    - build/etbloat/*.so
+    - build/etbloat/*.pk3
+    expire_in: 3 hrs
 
 build-linux-x86_64:
   stage: build
-  image: ghcr.io/exagone313/etlegacy-mirror-lnx-build:20230312120546
+  image: ghcr.io/exagone313/etlegacy-mirror-lnx-build:20240201125503
   before_script:
   - git submodule update --init
+  - ./easybuild.sh clean
   script:
-  - ./easybuild.sh build -64 -mod -no-ssl -noextra
+  - ./easybuild.sh build -64 -mod -no-ssl -noextra -nopk3
+  artifacts:
+    paths:
+    - build/etbloat/*.so
+    expire_in: 3 hrs
+
+build-linux-aarch64:
+  stage: build
+  image: ghcr.io/exagone313/etlegacy-mirror-lnx-aarch64-build:20240206123350
+  before_script:
+  - git submodule update --init
+  - ./easybuild.sh clean
+  script:
+  - ./easybuild.sh build -RPIT -mod -no-ssl -noextra -nopk3
+  artifacts:
+    paths:
+    - build/etbloat/*.so
+    expire_in: 3 hrs
+
+build-windows-x86:
+  stage: build
+  image: $CI_REGISTRY_IMAGE/windows-builder:latest
+  variables:
+    CC: i686-w64-mingw32-gcc
+    CXX: i686-w64-mingw32-g++
+  before_script:
+  - git submodule update --init
+  - ./easybuild.sh clean
+  script:
+  - ./easybuild.sh build -32 -mod -no-ssl -noextra -nopk3 --toolchain=cmake/Toolchain-cross-mingw-linux.cmake
+  artifacts:
+    paths:
+    - build/etbloat/*.dll
+    expire_in: 3 hrs
+
+build-windows-x64:
+  stage: build
+  image: $CI_REGISTRY_IMAGE/windows-builder:latest
+  variables:
+    CC: x86_64-w64-mingw32-gcc
+    CXX: x86_64-w64-mingw32-g++
+  before_script:
+  - git submodule update --init
+  - ./easybuild.sh clean
+  script:
+  - ./easybuild.sh build -64 -mod -no-ssl -noextra -nopk3 --toolchain=cmake/Toolchain-cross-mingw-x64-linux.cmake
+  artifacts:
+    paths:
+    - build/etbloat/*.dll
+    expire_in: 3 hrs
