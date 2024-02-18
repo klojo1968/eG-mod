@@ -4895,3 +4895,175 @@ void BG_LegsCollisionBoxOffset(vec3_t viewangles, int eFlags, vec3_t legsOffset)
 		VectorScale(flatforward, -32, legsOffset);
 	}
 }
+
+static inline int BG_CustomizeWeaponTableFromPositiveInt(int handle, pc_token_t *token, char *key, int *weaponTablePtr)
+{
+	int value;
+
+	if (!Q_stricmp(token->string, key))
+	{
+		if (PC_Int_Parse(handle, &value) && value >= 0)
+		{
+			*weaponTablePtr = value;
+		}
+		return qtrue;
+	}
+	return qfalse;
+}
+
+static inline int BG_CustomizeWeaponTableFromStrictlyPositiveInt(int handle, pc_token_t *token, char *key, int *weaponTablePtr)
+{
+	int value;
+
+	if (!Q_stricmp(token->string, key))
+	{
+		if (PC_Int_Parse(handle, &value) && value > 0)
+		{
+			*weaponTablePtr = value;
+		}
+		return qtrue;
+	}
+	return qfalse;
+}
+
+static inline int BG_CustomizeWeaponTableFromCappedUInt(int handle, pc_token_t *token, char *key, unsigned int *weaponTablePtr, unsigned int max)
+{
+	int value;
+
+	if (!Q_stricmp(token->string, key))
+	{
+		if (PC_Int_Parse(handle, &value) && value >= 0 && (unsigned)value < max)
+		{
+			*weaponTablePtr = (unsigned)value;
+		}
+		return qtrue;
+	}
+	return qfalse;
+}
+
+/**
+ * @brief BG_CustomizeWeaponTable
+ * @param[in] weaponNum
+ */
+static void BG_CustomizeWeaponTable(weapon_t weaponNum)
+{
+	const char *filename;
+	int        handle;
+	pc_token_t token;
+	int        value;
+
+	if (!GetWeaponTableData(weaponNum)->weapFile)
+	{
+		return;
+	}
+
+	filename = va("weapontable/%s.weapontable", GetWeaponTableData(weaponNum)->weapFile);
+	handle = trap_PC_LoadSource(filename);
+	if (!handle)
+	{
+		return;
+	}
+
+	if (!trap_PC_ReadToken(handle, &token) || Q_stricmp(token.string, "weaponTable"))
+	{
+#ifdef GAMEDLL
+		PC_SourceWarning(handle, "expected 'weaponTable'");
+#endif
+		goto clean;
+	}
+
+	if (!trap_PC_ReadToken(handle, &token) || Q_stricmp(token.string, "{"))
+	{
+#ifdef GAMEDLL
+		PC_SourceWarning(handle, "expected '{'");
+#endif
+		goto clean;
+	}
+
+	while (1)
+	{
+		if (!trap_PC_ReadToken(handle, &token))
+		{
+			break;
+		}
+
+		if (token.string[0] == '}')
+		{
+			break;
+		}
+
+		if (BG_CustomizeWeaponTableFromCappedUInt(
+			handle, &token, "skillBased", &GetWeaponTableData(weaponNum)->skillBased, SK_NUM_SKILLS))
+		{
+			continue;
+		}
+#ifdef GAMEDLL
+		if (BG_CustomizeWeaponTableFromStrictlyPositiveInt(
+			handle, &token, "damage", &GetWeaponTableData(weaponNum)->damage))
+		{
+			continue;
+		}
+#endif
+		if (BG_CustomizeWeaponTableFromStrictlyPositiveInt(
+			handle, &token, "maxAmmo", &GetWeaponTableData(weaponNum)->maxAmmo))
+		{
+			continue;
+		}
+		if (BG_CustomizeWeaponTableFromStrictlyPositiveInt(
+			handle, &token, "maxClip", &GetWeaponTableData(weaponNum)->maxClip))
+		{
+			continue;
+		}
+		if (BG_CustomizeWeaponTableFromPositiveInt(
+			handle, &token, "reloadTime", &GetWeaponTableData(weaponNum)->reloadTime))
+		{
+			continue;
+		}
+		if (BG_CustomizeWeaponTableFromStrictlyPositiveInt(
+			handle, &token, "fireDelayTime", &GetWeaponTableData(weaponNum)->fireDelayTime))
+		{
+			continue;
+		}
+		if (BG_CustomizeWeaponTableFromStrictlyPositiveInt(
+			handle, &token, "nextShotTime", &GetWeaponTableData(weaponNum)->nextShotTime))
+		{
+			continue;
+		}
+		if (BG_CustomizeWeaponTableFromPositiveInt(
+			handle, &token, "maxHeat", &GetWeaponTableData(weaponNum)->maxHeat))
+		{
+			continue;
+		}
+		if (BG_CustomizeWeaponTableFromPositiveInt(
+			handle, &token, "coolRate", &GetWeaponTableData(weaponNum)->coolRate))
+		{
+			continue;
+		}
+		if (BG_CustomizeWeaponTableFromPositiveInt(
+			handle, &token, "heatRecoveryTime", &GetWeaponTableData(weaponNum)->heatRecoveryTime))
+		{
+			continue;
+		}
+#ifdef GAMEDLL
+		PC_SourceWarning(handle, "unknown token '%s'", token.string);
+#endif
+	}
+
+clean:
+	trap_PC_FreeSource(handle);
+}
+
+/**
+ * @brief BG_CustomizeTables
+ */
+void BG_CustomizeTables(void)
+{
+	weapon_t       weaponNum;
+	meansOfDeath_t modNum;
+	int            classNum;
+
+	for (weaponNum = WP_KNIFE; weaponNum < WP_NUM_WEAPONS; weaponNum++)
+	{
+		BG_CustomizeWeaponTable(weaponNum);
+	}
+}
