@@ -13,13 +13,7 @@ See the dedicated [features](ETBLOAT-FEATURES.md) page.
 To build etbloat, you need to check [ET Legacy's README](README.md). Here is an example to build for Linux x86 (i386):
 
 ```
-./easybuild.sh build -noextra -mod
-```
-
-If you wish not to use easybuild, here is a list of CMake parameters you might want to use:
-
-```
--DBUILD_CLIENT=0 -DBUILD_SERVER=0 -DFEATURE_OMNIBOT=ON -DINSTALL_EXTRA=OFF -DBUNDLED_SDL=OFF -DBUNDLED_JPEG=OFF -DBUNDLED_CURL=OFF -DBUNDLED_OPENSSL=OFF -DBUNDLED_OGG_VORBIS=OFF -DBUNDLED_THEORA=OFF -DBUNDLED_OPENAL=OFF -DBUNDLED_OPENAL_INCLUDE=OFF -DBUNDLED_GLEW=OFF -DBUNDLED_FREETYPE=OFF
+./easybuild.sh build -32 -mod -noextra
 ```
 
 Please note that building ET Legacy client from this repository is not supported.
@@ -38,10 +32,10 @@ XreaL GPL Source Code (renderer2)
 Copyright (C) 2010-2011 Robert Beckebans
 
 ET: Legacy
-Copyright (C) 2012-2023 ET:Legacy Team <mail@etlegacy.com>
+Copyright (C) 2012-2024 ET:Legacy Team <mail@etlegacy.com>
 
 etbloat
-Copyright (C) 2016-2023 Elouan Martinet <exa@elou.world>
+Copyright (C) 2016-2024 Elouan Martinet <exa@elou.world>
 
   etbloat is free software: you can redistribute it and/or modify it under
   the terms of the GNU General Public License as published by the Free Software
