@@ -2689,6 +2689,7 @@ typedef struct cgs_s
 
 	int doubleJump;
 	float doubleJumpHeight;
+	int shootLeaning;
 } cgs_t;
 
 //==============================================================================

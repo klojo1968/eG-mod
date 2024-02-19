@@ -57,6 +57,7 @@ typedef enum
 
 #define PM_DOUBLE_JUMP          cgs.doubleJump
 #define PM_DOUBLE_JUMP_HEIGHT   cgs.doubleJumpHeight
+#define PM_SHOOT_LEANING        cgs.shootLeaning
 
 #else
 extern vmCvar_t g_fixedphysics;
@@ -65,6 +66,7 @@ extern vmCvar_t g_pronedelay;
 
 extern vmCvar_t g_doubleJump;
 extern vmCvar_t g_doubleJumpHeight;
+extern vmCvar_t g_shootLeaning;
 
 #define PM_FIXEDPHYSICS         g_fixedphysics.integer
 #define PM_FIXEDPHYSICSFPS      g_fixedphysicsfps.integer
@@ -72,6 +74,7 @@ extern vmCvar_t g_doubleJumpHeight;
 
 #define PM_DOUBLE_JUMP          g_doubleJump.integer
 #define PM_DOUBLE_JUMP_HEIGHT   g_doubleJumpHeight.value
+#define PM_SHOOT_LEANING        g_shootLeaning.integer
 
 #endif
 
@@ -3706,9 +3709,9 @@ static void PM_Weapon(void)
 
 	// check for fire
 	// if not on fire button and there's not a delayed shot this frame...
-	// consider also leaning, with delayed attack reset
+	// consider also leaning (except if allowed), with delayed attack reset
 	if ((!(pm->cmd.buttons & BUTTON_ATTACK) && !delayedFire) ||
-	    (pm->ps->leanf != 0.f && !GetWeaponTableData(pm->ps->weapon)->grenadeTime))
+	    (!PM_SHOOT_LEANING && pm->ps->leanf != 0.f && !GetWeaponTableData(pm->ps->weapon)->grenadeTime))
 	{
 		pm->ps->weaponTime  = 0;
 		pm->ps->weaponDelay = 0;
@@ -4184,7 +4187,7 @@ void PM_UpdateLean(playerState_t *ps, usercmd_t *cmd, pmove_t *tpm)
 		if (ps->pm_type == PM_SPECTATOR ||                      // allow spectators to lean while moving
 		    ((!cmd->forwardmove && cmd->upmove <= 0) &&         // not allow to lean while moving
 		     !BG_PlayerMounted(ps->eFlags) &&                   // not allow to lean while on mg42
-		     !(ps->eFlags & EF_FIRING) &&                       // not allow to lean while firing
+		     !(!PM_SHOOT_LEANING && ps->eFlags & EF_FIRING) &&  // not allow to lean while firing (except if allowed)
 		     !(ps->eFlags & EF_DEAD) &&                         // not allow to lean while dead
 		     !(ps->eFlags & EF_PRONE) &&                        // not allow to lean while prone
 		     !(ps->weaponstate == WEAPON_FIRING && ps->weapon == WP_DYNAMITE) && // don't allow to lean while tossing dynamite. NOTE: ATVI Wolfenstein Misc #479 - initial fix to #270 would crash in g_synchronousClients 1 situation

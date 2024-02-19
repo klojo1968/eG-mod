@@ -234,6 +234,7 @@ void CG_ParseServerinfo(void)
 
 	cgs.doubleJump = atoi(Info_ValueForKey(info, "g_doubleJump"));
 	cgs.doubleJumpHeight = atof(Info_ValueForKey(info, "g_doubleJumpHeight"));
+	cgs.shootLeaning = atoi(Info_ValueForKey(info, "g_shootLeaning"));
 }
 
 /**

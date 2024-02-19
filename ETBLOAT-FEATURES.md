@@ -8,6 +8,7 @@ Please note that stability is **not** guaranteed.
 
 * Custom dynamite counter duration
 * Double jump
+* Shoot while leaning
 * Weapon table customization
 * New Lua hooks
 
@@ -36,6 +37,12 @@ Values must be greater than 0
 Dynamite counter duration.
 
 Default value: 30
+
+### *g_shootLeaning*
+
+Set to 1 to enable shooting while leaning.
+
+Default value: 0
 
 ## Weapon table customization
 

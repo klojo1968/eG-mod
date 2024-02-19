@@ -387,6 +387,7 @@ vmCvar_t g_dynamiteCounter; // default 30
 
 vmCvar_t g_doubleJump; // 0 - off, 1 - jaymod style, 2 - nitmod style, 3 - etpub style
 vmCvar_t g_doubleJumpHeight; // default 1.4
+vmCvar_t g_shootLeaning; // 0 - off, 1 - enabled
 
 cvarTable_t gameCvarTable[] =
 {
@@ -692,6 +693,7 @@ cvarTable_t gameCvarTable[] =
 
 	{ &g_doubleJump,                      "g_doubleJump",                      "0",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },
 	{ &g_doubleJumpHeight,                "g_doubleJumpHeight",                "1.4",                        CVAR_SERVERINFO,                                 0, qfalse, qfalse },
+	{ &g_shootLeaning,                    "g_shootLeaning",                    "0",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },
 };
 
 /**

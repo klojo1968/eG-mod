@@ -1578,7 +1578,7 @@ void CG_PredictLean(centity_t *cent, vec3_t torsoAngles, vec3_t headAngles)
 		leaning = 0;    // leaning not allowed on mg42
 	}
 
-	if (cent->currentState.eFlags & EF_FIRING)
+	if (!cgs.shootLeaning && cent->currentState.eFlags & EF_FIRING)
 	{
 		leaning = 0;    // not allowed to lean while firing
 	}
