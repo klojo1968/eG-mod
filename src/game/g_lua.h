@@ -167,6 +167,7 @@ qboolean G_LuaHook_WeaponFire(int clientNum, weapon_t weapon, gentity_t **pFired
 qboolean G_LuaHook_FixedMGFire(int clientNum);
 qboolean G_LuaHook_MountedMGFire(int clientNum);
 qboolean G_LuaHook_AAGunFire(int clientNum);
+qboolean G_LuaHook_TeamCommand(int clientNum, team_t team, int classType, weapon_t w1, weapon_t w2);
 
 #endif // #ifndef INCLUDE_G_LUA_H
 

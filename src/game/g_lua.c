@@ -3837,6 +3837,53 @@ void G_LuaHook_SpawnEntitiesFromString()
 	}
 }
 
+/*
+ * G_LuaHook_TeamCommand
+ * intercepted = et_TeamCommand( clientNum, team, weapon1, weapon2 ) callback
+ */
+qboolean G_LuaHook_TeamCommand(int clientNum, team_t team, int classType, weapon_t w1, weapon_t w2)
+{
+	int      i;
+	lua_vm_t *vm;
+
+	for (i = 0; i < LUA_NUM_VM; i++)
+	{
+		vm = lVM[i];
+		if (vm)
+		{
+			if (vm->id < 0) //|| vm->err)
+			{
+				continue;
+			}
+			if (!G_LuaGetNamedFunction(vm, "et_TeamCommand"))
+			{
+				continue;
+			}
+			// Arguments
+			lua_pushinteger(vm->L, clientNum);
+			lua_pushinteger(vm->L, team);
+			lua_pushinteger(vm->L, classType);
+			lua_pushinteger(vm->L, w1);
+			lua_pushinteger(vm->L, w2);
+			// Call
+			if (!G_LuaCall(vm, "et_TeamCommand", 5, 1))
+			{
+				//G_LuaStopVM(vm);
+				continue;
+			}
+			// Return values
+			if (lua_isnumber(vm->L, -1))
+			{
+				if (lua_tointeger(vm->L, -1) == 1)
+				{
+					return qtrue;
+				}
+			}
+		}
+	}
+	return qfalse;
+}
+
 /** @} */ // doxygen addtogroup lua_etevents
 
 void Svcmd_LoadLua_f(void)

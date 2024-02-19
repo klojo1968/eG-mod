@@ -9,6 +9,7 @@ Please note that stability is **not** guaranteed.
 * Custom dynamite counter duration
 * Double jump
 * Weapon table customization
+* New Lua hooks
 
 ## New cvars
 
@@ -118,3 +119,21 @@ It contains these files:
 
 In this configuration, the MP 40, Thompson and Sten weapons will be over powered compared
 to the original weapons.
+
+## New Lua hooks
+
+### `et_TeamCommand`
+
+Called when a `team` command is received from a client.
+
+`intercepted = et_TeamCommand(clientNum, team, class, weapon1, weapon2)`
+
+Returns 1 to cancel the `team` command, or 0 to proceed.
+
+* `clientNum`: client slot id
+* `team`: team id (1: axis, 2: allies, 3: spectator)
+* `class`: class id
+* `weapon1`: primary weapon id (`weaponbank` 3)
+* `weapon2`: secondary weapon id (`weaponbank` 2)
+
+Note: the client-side `class` command sends a `team` command to the server.

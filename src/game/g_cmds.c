@@ -2181,6 +2181,13 @@ void Cmd_Team_f(gentity_t *ent, unsigned int dwCommand, int value)
 		return;
 	}
 
+#ifdef FEATURE_LUA
+	if (G_LuaHook_TeamCommand(ent->s.clientNum, team, playerType, w, w2))
+	{
+		return;
+	}
+#endif
+
 	if (ent->client->sess.playerType != playerType || ent->client->sess.latchPlayerType != playerType)
 	{
 		classChange = qtrue;
