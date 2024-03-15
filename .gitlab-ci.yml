@@ -1,6 +1,7 @@
 stages:
 - prebuild
 - build
+- package
 
 variables:
   CI: "true"
@@ -19,6 +20,19 @@ make-windows-builder:
   script:
   - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
   - /kaniko/executor --context $CI_PROJECT_DIR/misc/docker --dockerfile $CI_PROJECT_DIR/misc/docker/windows-builder.Dockerfile --destination $CI_REGISTRY_IMAGE/windows-builder:latest --push-retry 10
+
+make-packager:
+  stage: prebuild
+  rules:
+  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    changes:
+    - misc/docker/etbloat-packager.Dockerfile
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+  - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+  - /kaniko/executor --context $CI_PROJECT_DIR/misc/docker --dockerfile $CI_PROJECT_DIR/misc/docker/etbloat-packager.Dockerfile --destination $CI_REGISTRY_IMAGE/etbloat-packager:latest --push-retry 10
 
 build-linux-i386:
   stage: build
@@ -90,4 +104,18 @@ build-windows-x64:
   artifacts:
     paths:
     - build/etbloat/*.dll
+    expire_in: 3 hrs
+
+package:
+  stage: package
+  image: $CI_REGISTRY_IMAGE/etbloat-packager:latest
+  script:
+  - cd build/etbloat
+  - echo win_x86 win_x86_64 lnx_x86 lnx_x86_64 lnx_armv8_64 > platforms.manifest
+  - ls -l
+  - 7z a etbloat_etbloat-${CI_COMMIT_SHORT_SHA}.pk3 cgame* ui* platforms.manifest
+  - 7z a etbloat-${CI_COMMIT_SHORT_SHA}.zip etbloat_etbloat-${CI_COMMIT_SHORT_SHA}.pk3 qagame* tvgame*
+  artifacts:
+    paths:
+    - build/etbloat/*.zip
     expire_in: 3 hrs
