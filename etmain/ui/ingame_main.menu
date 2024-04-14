@@ -71,29 +71,9 @@ menuDef {
 
 
 #ifdef OLD_CLIENT
-	itemDef {
-		name        "legacy_logo"
-		rect        15 WINDOW_HEIGHT 128 64
-		style       WINDOW_STYLE_SHADER
-		background  "ui/assets/etl_logo"
-		forecolor   1 1 1 1
-		visible     1
-		decoration
-	}
-
-	LABEL( 60, 274, 132, 10, "^1"ETLEGACY_VERSION, .2, ITEM_ALIGN_LEFT, 0, 8 )
+	LABEL( 2, 250, 132, 10, "^5"ETLEGACY_VERSION, .2, ITEM_ALIGN_LEFT, 0, 8 )
 #else
-	itemDef {
-		name        "legacy_logo"
-		rect        15 WINDOW_HEIGHT 128 64
-		style       WINDOW_STYLE_SHADER
-		background  "ui/assets/etl_logo"
-		forecolor   1 1 1 1
-		visible     1
-		decoration
-	}
-
-	LABEL( 60, WINDOW_HEIGHT+68, 132, 10, "^1"ETLEGACY_VERSION, .2, ITEM_ALIGN_LEFT, 0, 8 )
+	LABEL( 2, WINDOW_HEIGHT+44, 132, 10, "^5"ETLEGACY_VERSION, .2, ITEM_ALIGN_LEFT, 0, 8 )
 #endif
 
 #ifdef NON_RELEASE_BUILD
