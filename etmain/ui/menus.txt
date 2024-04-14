@@ -93,4 +93,8 @@
 	loadMenu { "ui/ingame_tapout.menu" }
 	loadMenu { "ui/ingame_tapoutlms.menu" }
 	loadMenu { "ui/ingame_vote_bot.menu" }
+
+	// etbloat
+	loadMenu { "ui/credits_etbloat.menu" }
+	loadMenu { "ui/etbloat_website.menu" }
 }
