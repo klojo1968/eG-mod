@@ -580,8 +580,8 @@ generate_configuration() {
         INSTALL_OMNIBOT=0
     fi
 
-    MODNAME=${MODNAME:-legacy}
-    MODURL=${MODURL:-www.etlegacy.com}
+    MODNAME=${MODNAME:-etbloat}
+    MODURL=${MODURL:-etblo.at}
 
     einfo "Configuring ET: Legacy..."
     cmake_args+=(
