@@ -117,6 +117,16 @@ vmCvar_t g_filterBan;
 vmCvar_t pmove_fixed;
 vmCvar_t pmove_msec;
 
+vmCvar_t g_tripmines;
+vmCvar_t g_tripmineTimeout;
+
+vmCvar_t g_poison;
+vmCvar_t g_poisonClasses;
+vmCvar_t g_poisonLevel;
+vmCvar_t g_weapons;
+vmCvar_t g_damageweapons;
+vmCvar_t n_preciseLandmineTrigger;
+vmCvar_t g_tripmineArmTime;
 vmCvar_t g_scriptName; // name of script file to run (instead of default for that map)
 
 vmCvar_t g_developer;
@@ -269,6 +279,7 @@ vmCvar_t team_maxMachineguns;
 vmCvar_t team_maxRockets;
 vmCvar_t team_maxRiflegrenades;
 vmCvar_t team_maxLandmines;
+vmCvar_t team_maxTripmines;
 // misc
 vmCvar_t team_riflegrenades;
 // skills
@@ -347,11 +358,8 @@ vmCvar_t g_floodWait;
 
 vmCvar_t g_etltv_flags;
 
-vmCvar_t g_dynamiteCounter; // default 30
-
 vmCvar_t g_doubleJump; // 0 - off, 1 - jaymod style, 2 - nitmod style, 3 - etpub style
 vmCvar_t g_doubleJumpHeight; // default 1.4
-
 // Table {{{1
 
 typedef struct
@@ -471,6 +479,16 @@ cvarTable_t gameCvarTable[] =
 
 	{ &pmove_fixed,                       "pmove_fixed",                       "0",                          CVAR_SYSTEMINFO,                                 0, qfalse, qfalse },
 	{ &pmove_msec,                        "pmove_msec",                        "8",                          CVAR_SYSTEMINFO,                                 0, qfalse, qfalse },
+	{ &g_tripmines,                       "g_tripmines",                       "0",                          CVAR_SERVERINFO | CVAR_LATCH,                    0, qfalse, qfalse },     // 0 = off, 1 = engineers spawn with a tripmine
+	{ &g_tripmineTimeout,                 "g_tripmineTimeout",                 "1",                          0,                                               0, qfalse, qfalse },     // 1 = remove a player's tripmines when he leaves or changes team
+	{ &g_tripmineArmTime,                     "g_tripmineArmTime",                     "3000",                          0,                                               0, qfalse, qfalse },     // ms between "Tripmine armed" and the laser going live (time for the engineer to step out of it), min 250
+	
+	{ &g_poison,                          "g_poison",                          "0",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },     // bitflags, 0 = off. 1: poison syringe, medic syringe cures. 2: health packs and cabinets also cure. 4: slow poison (10 HP / 1.5 s). 8: the poisoner's own packs don't cure. 16: teammates can be poisoned
+	{ &g_poisonClasses,                   "g_poisonClasses",                   "0",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },     // classes that get the poison syringe: 1 soldier, 2 medic, 4 engineer, 8 field ops, 16 covert ops; 0 = all classes
+	{ &g_poisonLevel,                     "g_poisonLevel",                     "4",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },     // Light Weapons level needed for the poison syringe (0 = everyone, NitMod default 4)
+	{ &g_weapons,                         "g_weapons",                         "0",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },     // NitMod compatible bitflags: 32768 tripmines (same as g_tripmines 1)
+	{ &g_damageweapons,                   "g_damageweapons",                   "0",                          0,                                               0, qfalse, qfalse },     // NitMod compatible bitflags: 32 tripmines can be shot and destroyed
+	{ &n_preciseLandmineTrigger,          "n_preciseLandmineTrigger",          "0",                          0,                                               0, qfalse, qfalse },     // 1 = a landmine only triggers when your bounding box touches the mine's, instead of the distance check
 
 	{ &g_scriptName,                      "g_scriptName",                      "",                           CVAR_CHEAT,                                      0, qfalse, qfalse },
 
@@ -621,6 +639,7 @@ cvarTable_t gameCvarTable[] =
 	{ &team_maxRockets,                   "team_maxRockets",                   "-1",                         0,                                               0, qfalse, qfalse },
 	{ &team_maxRiflegrenades,             "team_maxRiflegrenades",             "-1",                         0,                                               0, qfalse, qfalse },
 	{ &team_maxLandmines,                 "team_maxLandmines",                 "10",                         0,                                               0, qfalse, qfalse },
+	{ &team_maxTripmines,                 "team_maxTripmines",                 "5",                          0,                                               0, qfalse, qfalse },     // armed tripmines allowed per team
 	//misc
 	{ &team_riflegrenades,                "team_riflegrenades",                "1",                          0,                                               0, qfalse, qfalse },
 	//skills
@@ -631,7 +650,7 @@ cvarTable_t gameCvarTable[] =
 	{ &skill_covertops,                   "skill_covertops",                   "20 50 90 140",               CVAR_ARCHIVE,                                    0, qfalse, qfalse },
 	{ &skill_battlesense,                 "skill_battlesense",                 "20 50 90 140",               CVAR_ARCHIVE,                                    0, qfalse, qfalse },
 	{ &skill_lightweapons,                "skill_lightweapons",                "20 50 90 140",               CVAR_ARCHIVE,                                    0, qfalse, qfalse },
-	{ &g_misc,                            "g_misc",                            "0",                          0,                                               0, qfalse, qfalse },
+	{ &g_misc,                            "g_misc",                            "0",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },     // serverinfo so cgame can read bit 16 (coloured enemy mines)
 	{ &g_intermissionTime,                "g_intermissionTime",                "60",                         0,                                               0, qfalse, qfalse },
 	{ &g_intermissionReadyPercent,        "g_intermissionReadyPercent",        "100",                        0,                                               0, qfalse, qfalse },
 	{ &g_mapScriptDirectory,              "g_mapScriptDirectory",              "mapscripts",                 0,                                               0, qfalse, qfalse },
@@ -673,9 +692,6 @@ cvarTable_t gameCvarTable[] =
 	{ &g_floodWait,                       "g_floodWait",                       "1000",                       CVAR_ARCHIVE,                                    0, qtrue,  qfalse },
 
 	{ &g_etltv_flags,                     "g_etltv_flags",                     "3",                          CVAR_ARCHIVE,                                    0, qtrue,  qfalse },
-
-	{ &g_dynamiteCounter,                 "g_dynamiteCounter",                 "30",                         CVAR_SERVERINFO | CVAR_ARCHIVE,                  0, qfalse, qfalse },
-
 	{ &g_doubleJump,                      "g_doubleJump",                      "0",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },
 	{ &g_doubleJumpHeight,                "g_doubleJumpHeight",                "1.4",                        CVAR_SERVERINFO,                                 0, qfalse, qfalse },
 };
@@ -903,6 +919,7 @@ void G_UpdateCvars(void)
 				         cv->vmCvar == &team_maxRockets ||
 				         cv->vmCvar == &team_maxRiflegrenades ||
 				         cv->vmCvar == &team_maxLandmines ||
+						 cv->vmCvar == &team_maxTripmines ||
 				         cv->vmCvar == &team_maxplayers)
 				{
 					clsweaprestriction = qtrue;
@@ -1046,6 +1063,7 @@ void G_UpdateCvars(void)
 		Info_SetValueForKey(cs, "w3", team_maxRockets.string);
 		Info_SetValueForKey(cs, "w4", team_maxRiflegrenades.string);
 		Info_SetValueForKey(cs, "w5", team_maxLandmines.string);
+		Info_SetValueForKey(cs, "w6", team_maxTripmines.string);
 		Info_SetValueForKey(cs, "m", team_maxplayers.string);
 		trap_SetConfigstring(CS_TEAMRESTRICTIONS, cs);
 	}

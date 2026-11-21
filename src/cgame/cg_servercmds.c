@@ -174,10 +174,18 @@ static void CG_ParseTeamInfo(void)
  */
 static void CG_FillVersionInfo(version_t *version, char *versionStr, const char *delimiter)
 {
+	char *token;
+
 	Com_Printf("Demo Version: %s\n", versionStr);
-	version->major = Q_atoi(strtok(versionStr, delimiter));
-	version->minor = Q_atoi(strtok(NULL, delimiter));
-	version->patch = Q_atoi(strtok(NULL, delimiter));
+
+	token          = strtok(versionStr, delimiter);
+	version->major = token ? Q_atoi(token) : 0;
+
+	token          = strtok(NULL, delimiter);
+	version->minor = token ? Q_atoi(token) : 0;
+
+	token          = strtok(NULL, delimiter);
+	version->patch = token ? Q_atoi(token) : 0;
 }
 
 void CG_ParseDemoVersion(void)
@@ -258,15 +266,13 @@ void CG_ParseServerinfo(void)
 	trap_Cvar_Set("g_bluelimbotime", Info_ValueForKey(info, "g_bluelimbotime"));
 	cg_bluelimbotime.integer = Q_atoi(Info_ValueForKey(info, "g_bluelimbotime"));
 	cgs.weaponRestrictions   = Q_atoi(Info_ValueForKey(info, "g_heavyWeaponRestriction")) * 0.01f;
+	cgs.serverMiscFlags      = Q_atoi(Info_ValueForKey(info, "g_misc")); // G_MISC_COLOURED_MINES
 
 	cgs.minclients = Q_atoi(Info_ValueForKey(info, "g_minGameClients")); //  overloaded for ready counts
 
 	// make this available for ingame_callvote
 	trap_Cvar_Set("cg_ui_voteFlags", ((authLevel.integer == RL_NONE) ? Info_ValueForKey(info, "voteFlags") : "0"));
-
-	cgs.dynamiteCounter = atoi(Info_ValueForKey(info, "g_dynamiteCounter"));
-
-	cgs.doubleJump = atoi(Info_ValueForKey(info, "g_doubleJump"));
+cgs.doubleJump = atoi(Info_ValueForKey(info, "g_doubleJump"));
 	cgs.doubleJumpHeight = atof(Info_ValueForKey(info, "g_doubleJumpHeight"));
 }
 
@@ -942,6 +948,7 @@ void CG_TeamRestrictionsChanged(void)
 	Q_strncpyz(cg.maxRockets, Info_ValueForKey(info, "w3"), sizeof(cg.maxRockets));
 	Q_strncpyz(cg.maxRiflegrenades, Info_ValueForKey(info, "w4"), sizeof(cg.maxRiflegrenades));
 	Q_strncpyz(cg.maxLandmines, Info_ValueForKey(info, "w5"), sizeof(cg.maxLandmines));
+	Q_strncpyz(cg.maxTripmines, Info_ValueForKey(info, "w5"), sizeof(cg.maxTripmines));
 	cg.maxPlayers = Q_atoi(Info_ValueForKey(info, "m"));
 }
 

@@ -1406,7 +1406,7 @@ void G_SetEntState(gentity_t *ent, entState_t state)
 				else
 				{
 					// remove the landmine from both teamlists
-					if (check->s.eType == ET_MISSILE && check->methodOfDeath == MOD_LANDMINE)
+					if (check->s.eType == ET_MISSILE && IS_LANDMINE_MOD(check->methodOfDeath))
 					{
 						mapEntityData_t *mEnt;
 
@@ -1904,7 +1904,9 @@ team_t G_GetTeamFromEntity(gentity_t *ent)
 		case MOD_SMOKEGRENADE:
 		case MOD_SATCHEL:
 		case MOD_DYNAMITE:
+		case MOD_BOMB:
 		case MOD_LANDMINE:
+		case MOD_POISON_MINE:
 			return ent->s.teamNum;
 		default:
 			break;

@@ -137,9 +137,6 @@ vmCvar_t tvg_floodWait;
 vmCvar_t tvg_queue_ms;
 vmCvar_t tvg_autoAction;
 
-vmCvar_t g_doubleJump; // 0 - off, 1 - jaymod style, 2 - nitmod style, 3 - etpub style
-vmCvar_t g_doubleJumpHeight; // default 1.4
-
 tvcvarTable_t gameCvarTable[] =
 {
 	// don't override the cheat state set by the system
@@ -216,9 +213,6 @@ tvcvarTable_t gameCvarTable[] =
 	// tvgame specific
 	{ &tvg_queue_ms,            "ettv_queue_ms",           "-1",                         CVAR_ROM,                                    0, qfalse,},
 	{ &tvg_autoAction,          "tvg_autoAction",          "2",                          CVAR_ARCHIVE,                                0, qfalse,},
-
-	{ &g_doubleJump,            "g_doubleJump",            "0",                          CVAR_SERVERINFO,                             0, qfalse,},
-	{ &g_doubleJumpHeight,      "g_doubleJumpHeight",      "1.4",                        CVAR_SERVERINFO,                             0, qfalse,},
 };
 
 /**

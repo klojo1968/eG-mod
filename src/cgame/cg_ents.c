@@ -1056,6 +1056,27 @@ static void CG_Smoker(centity_t *cent)
 	cent->lastTrailTime = cg.time;  // time we were last received at the client
 }
 
+/**
+ * @brief shader for an enemy mine seen with Battle Sense trap awareness: white
+ * construction shader, or with server g_misc bit 16 (NitMod) transparent red (Axis) / blue (Allies)
+ * @param[in] cent
+ * @param[in,out] ent
+ */
+static void CG_SpottedMineShader(centity_t *cent, refEntity_t *ent)
+{
+	if (!(cgs.serverMiscFlags & G_MISC_COLOURED_MINES))
+	{
+		ent->customShader = cgs.media.genericConstructionShader;
+		return;
+	}
+
+	ent->shaderRGBA[0] = cent->currentState.teamNum == TEAM_AXIS ? 255 : 0;
+	ent->shaderRGBA[1] = 0;
+	ent->shaderRGBA[2] = cent->currentState.teamNum == TEAM_AXIS ? 0 : 255;
+	ent->shaderRGBA[3] = 255;
+	ent->customShader  = cgs.media.shoutcastLandmineShader;
+}
+
 static void CG_DrawLandmine(centity_t *cent, refEntity_t *ent)
 {
 	int color = (int)255 - (255 * fabs(sin(cg.time * 0.002)));
@@ -1227,6 +1248,114 @@ static qboolean CG_LerpRifleGrenadeDir(centity_t *cent, vec3_t outDir)
 	return qtrue;
 }
 
+/**
+ * @brief CG_Tripmine draws a wall-mounted tripmine and, once armed, its laser 
+ *
+ * The beam is visible to the mine's team and to spectators. Enemies only see the mine and a dim
+ * beam when it has been spotted by a covert ops, or when they have trap awareness and are within
+ * 256 units - the same rules as landmines.
+ *
+ * @param[in] cent
+ * @param[in] weapon
+ */
+static void CG_Tripmine(centity_t *cent, const weaponInfo_t *weapon)
+{
+	entityState_t *s1      = &cent->currentState;
+	clientInfo_t  *viewer  = &cgs.clientinfo[cg.snap->ps.clientNum];
+	qboolean      friendly = (viewer->team == s1->teamNum || viewer->team == TEAM_SPECTATOR);
+	qboolean      trapAware = qfalse;
+	refEntity_t   ent;
+	refEntity_t   beam;
+	trace_t       tr;
+	vec3_t        end;
+	byte          intensity;
+
+	if (s1->effect1Time && !friendly && !s1->modelindex2 && s1->density - 1 != cg.snap->ps.clientNum)
+	{
+		// not spotted: only players with trap awareness who are close enough see it
+		if (!BG_IsSkillAvailable(viewer->skill, SK_BATTLE_SENSE, SK_BATTLE_SENSE_TRAP_AWARENESS)
+		    || DistanceSquared(cent->lerpOrigin, cg.predictedPlayerEntity.lerpOrigin) > Square(256))
+		{
+			return;
+		}
+		trapAware = qtrue;
+	}
+
+	// the mine sits on the wall, the model's forward axis pointing away from it (along the laser)
+	Com_Memset(&ent, 0, sizeof(ent));
+	VectorMA(cent->lerpOrigin, -TRIPMINE_WALL_OFFSET, s1->origin2, ent.origin);
+	VectorCopy(ent.origin, ent.oldorigin);
+	VectorCopy(cent->lerpOrigin, ent.lightingOrigin);
+	VectorCopy(s1->origin2, ent.axis[0]);
+	if (Q_fabs(ent.axis[0][2]) < 0.9f)
+	{
+		// keep the model upright on walls
+		const vec3_t worldUp = { 0, 0, 1 };
+
+		CrossProduct(worldUp, ent.axis[0], ent.axis[1]);
+		VectorNormalize(ent.axis[1]);
+	}
+	else
+	{
+		PerpendicularVector(ent.axis[1], ent.axis[0]);
+	}
+	CrossProduct(ent.axis[0], ent.axis[1], ent.axis[2]);
+
+	ent.hModel   = weapon->missileModel;
+	ent.renderfx = weapon->missileRenderfx | RF_NOSHADOW | RF_LIGHTING_ORIGIN;
+
+	if (s1->teamNum == TEAM_ALLIES)
+	{
+		ent.customSkin = weapon->missileAlliedSkin;
+	}
+	else if (s1->teamNum == TEAM_AXIS)
+	{
+		ent.customSkin = weapon->missileAxisSkin;
+	}
+
+	if (trapAware)
+	{
+		CG_SpottedMineShader(cent, &ent);
+	}
+
+	if (ent.hModel)
+	{
+		CG_AddRefEntityWithPowerups(&ent, s1->powerups, TEAM_FREE, s1, vec3_origin);
+	}
+
+	if (!s1->effect1Time)
+	{
+		return;     // not armed yet: no laser
+	}
+
+	if (friendly)
+	{
+		CG_AddEntToCrosshairScanList(cent);
+	}
+
+	// the laser runs along the wall normal until it hits something solid
+	VectorMA(cent->lerpOrigin, TRIPMINE_BEAM_LENGTH, s1->origin2, end);
+	CG_Trace(&tr, cent->lerpOrigin, NULL, NULL, end, s1->number, MASK_SOLID | CONTENTS_BODY);
+
+	Com_Memset(&beam, 0, sizeof(beam));
+	VectorCopy(cent->lerpOrigin, beam.origin);
+	VectorCopy(tr.endpos, beam.oldorigin);
+	AxisClear(beam.axis);
+	beam.reType       = RT_RAIL_CORE;
+	beam.customShader = cgs.media.railCoreShader;
+	beam.renderfx     = RF_NOSHADOW;
+
+	// dim while priming or when seen by an enemy, bright once live
+	intensity = (friendly && cg.time >= s1->time2) ? 255 : 50;
+
+	beam.shaderRGBA[0] = (s1->teamNum == TEAM_AXIS) ? intensity : 0;
+	beam.shaderRGBA[1] = 0;
+	beam.shaderRGBA[2] = (s1->teamNum == TEAM_ALLIES) ? intensity : 0;
+	beam.shaderRGBA[3] = 255;
+
+	trap_R_AddRefEntityToScene(&beam);
+}
+
 static void CG_Missile(centity_t *cent)
 {
 	refEntity_t        ent;
@@ -1240,9 +1369,17 @@ static void CG_Missile(centity_t *cent)
 	}
 	weapon = &cg_weapons[s1->weapon];
 
-	if (s1->weapon == WP_SMOKE_BOMB)
+	if (s1->weapon == WP_TRIPMINE)
+	{
+		CG_Tripmine(cent, weapon);
+		return;
+	}
+
+	if (s1->weapon == WP_SMOKE_BOMB || s1->weapon == WP_POISON_MINE)
 	{
 		// the smoke effect
+		// the smoke effect (for the poison mine this is the gas cloud once triggered: effect1Time
+		// is only 0/1/2 - mine states - before that, and the smoke renderer ignores those)
 		CG_RenderSmokeGrenadeSmoke(cent, weapon);
 	}
 	else if (s1->weapon == WP_SATCHEL && s1->clientNum == cg.snap->ps.clientNum)
@@ -1322,7 +1459,7 @@ static void CG_Missile(centity_t *cent)
 			// add dynamite counter to floating string list
 			if (cgs.clientinfo[cg.clientNum].shoutcaster)
 			{
-				timer = va("%i", cgs.dynamiteCounter - (cg.time - cent->currentState.effect1Time) / 1000);
+				timer = va("%i", 30 - (cg.time - cent->currentState.effect1Time) / 1000);
 				CG_EntityFloatText(cent, timer, 8);
 			}
 		}
@@ -1373,7 +1510,7 @@ static void CG_Missile(centity_t *cent)
 	}
 	ent.renderfx = weapon->missileRenderfx | RF_NOSHADOW;
 
-	if (cent->currentState.weapon == WP_LANDMINE)
+	if (IS_LANDMINE_WEAPON(cent->currentState.weapon))
 	{
 		// shoutcasters can see armed landmines
 		if (cgs.clientinfo[cg.clientNum].team == TEAM_SPECTATOR && !cgs.clientinfo[cg.clientNum].shoutcaster)
@@ -1421,7 +1558,7 @@ static void CG_Missile(centity_t *cent)
 						}
 						else
 						{
-							ent.customShader = cgs.media.genericConstructionShader;
+							CG_SpottedMineShader(cent, &ent);
 						}
 					}
 					else
@@ -1441,7 +1578,9 @@ static void CG_Missile(centity_t *cent)
 			}
 		}
 
-		if (cent->currentState.effect1Time == 2)
+			// triggered (a poison mine keeps the lowered model while its gas cloud is out, effect1Time is then the cloud radius or -1)
+			if (cent->currentState.effect1Time == 2 || (cent->currentState.weapon == WP_POISON_MINE && (cent->currentState.effect1Time > 2 || cent->currentState.effect1Time == -1)))
+
 		{
 			ent.origin[2]    -= 8;
 			ent.oldorigin[2] -= 8;

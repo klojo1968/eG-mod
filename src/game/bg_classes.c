@@ -107,8 +107,11 @@ bg_playerclass_t bg_playerClasses[2][NUM_PLAYER_CLASSES] =
 			{
 				{ WP_GPG40,                SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         5,   0   }, // riflenade as special weapon
 				{ WP_DYNAMITE,             SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         0,   1   },
+				{ WP_BOMB,                 SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         0,   1   }, // engineer only, available from level 0
 				{ WP_PLIERS,               SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         0,   1   },
 				{ WP_LANDMINE,             SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         0,   1   },
+				{ WP_TRIPMINE,             SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         0,   1   }, // only given when g_tripmines is on
+				{ WP_POISON_MINE,          SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         0,   1   }, // engineer only, available from level 0
 				{ WP_BINOCULARS,           SK_BATTLE_SENSE,                             SK_BATTLE_SENSE_BINOCULAR, 1,   0   },
 			},
 			0,
@@ -235,8 +238,11 @@ bg_playerclass_t bg_playerClasses[2][NUM_PLAYER_CLASSES] =
 			{
 				{ WP_M7,                   SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         5,   0   }, // riflenade as special weapon
 				{ WP_DYNAMITE,             SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         0,   1   },
+				{ WP_BOMB,                 SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         0,   1   }, // engineer only, available from level 0
 				{ WP_PLIERS,               SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         0,   1   },
 				{ WP_LANDMINE,             SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         0,   1   },
+				{ WP_TRIPMINE,             SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         0,   1   }, // only given when g_tripmines is on
+				{ WP_POISON_MINE,          SK_EXPLOSIVES_AND_CONSTRUCTION,              0,                         0,   1   }, // engineer only, available from level 0
 				{ WP_BINOCULARS,           SK_BATTLE_SENSE,                             SK_BATTLE_SENSE_BINOCULAR, 1,   0   },
 			},
 			0,

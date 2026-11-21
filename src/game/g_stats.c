@@ -269,6 +269,14 @@ void G_UpgradeSkill(gentity_t *ent, skillType_t skill)
 			AddWeaponToPlayer(ent->client, weaponClassInfo->weapon, classInfo->classMiscWeapons[i].startingAmmo, classInfo->classMiscWeapons[i].startingClip, qfalse);
 		}
 	}
+
+	// reaching g_poisonLevel in Light Weapons hands out the poison syringe straight away (otherwise at the next spawn)
+	if (skill == SK_LIGHT_WEAPONS && ent->health > 0 && !COM_BitCheck(ent->client->ps.weapons, WP_POISON_SYRINGE) &&
+	    G_PoisonSyringeAllowed(ent->client))
+	{
+		AddWeaponToPlayer(ent->client, WP_POISON_SYRINGE, 3, 1, qfalse);
+		trap_SendServerCommand(ent - g_entities, "cp \"You have a poison syringe (weapon bank 5)\" 1");
+	}
 }
 
 /**
@@ -598,6 +606,13 @@ void G_AddKillAssistPoints(gentity_t *target, gentity_t *attacker)
 		return;
 	}
 
+	// no assist points outside of the playing state (e.g. warmup)
+	if (g_gamestate.integer != GS_PLAYING)
+	{
+		Com_Memset(target->client->dmgReceivedSts, 0, sizeof(target->client->dmgReceivedSts));
+		return;
+	}
+
 	for (i = 0; i < ARRAY_LEN(target->client->dmgReceivedSts); ++i)
 	{
 		dmgReceivedSts[i] = &(target->client->dmgReceivedSts[i]);
@@ -617,7 +632,7 @@ void G_AddKillAssistPoints(gentity_t *target, gentity_t *attacker)
 		}
 
 		// skip old damage received
-		if (dmgReceivedSts[i]->lastHitTime + 1500 < level.time)
+		if (dmgReceivedSts[i]->lastHitTime + MAX_ASSIST_ELAPSED_TIME < level.time)
 		{
 			continue;
 		}
@@ -644,6 +659,10 @@ void G_AddKillAssistPoints(gentity_t *target, gentity_t *attacker)
 			complaintSent = G_CheckComplaint(target, ent, ent, dmgReceivedSts[i]->mods);
 		}
 	}
+
+	// reset the damage received, so a revived player dying again within
+	// MAX_ASSIST_ELAPSED_TIME doesn't re-award assists for the same damage
+	Com_Memset(target->client->dmgReceivedSts, 0, sizeof(target->client->dmgReceivedSts));
 }
 
 /////// SKILL DEBUGGING ///////

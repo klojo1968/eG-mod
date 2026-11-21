@@ -57,7 +57,6 @@ typedef enum
 
 #define PM_DOUBLE_JUMP          cgs.doubleJump
 #define PM_DOUBLE_JUMP_HEIGHT   cgs.doubleJumpHeight
-
 #else
 extern vmCvar_t g_fixedphysics;
 extern vmCvar_t g_fixedphysicsfps;
@@ -65,14 +64,12 @@ extern vmCvar_t g_pronedelay;
 
 extern vmCvar_t g_doubleJump;
 extern vmCvar_t g_doubleJumpHeight;
-
 #define PM_FIXEDPHYSICS         g_fixedphysics.integer
 #define PM_FIXEDPHYSICSFPS      g_fixedphysicsfps.integer
 #define PM_PRONEDELAY           g_pronedelay.integer
 
 #define PM_DOUBLE_JUMP          g_doubleJump.integer
 #define PM_DOUBLE_JUMP_HEIGHT   g_doubleJumpHeight.value
-
 #endif
 
 #define AIMSPREAD_MAXSPREAD 255
@@ -971,7 +968,6 @@ static qboolean PM_CheckDoubleJump(void)
 
 	return qtrue;
 }
-
 /**
  * @brief Sets mins, maxs, and pm->ps->viewheight
  * @return
@@ -1154,7 +1150,6 @@ static qboolean PM_CheckProne(void)
 				// don't jump for a bit
 				pm->pmext->jumpTime = pm->cmd.serverTime - 650;
 				pm->ps->jumpTime    = pm->cmd.serverTime - 650;
-
 				// also don't allow a double jump
 				pm->ps->pm_flags |= PMF_DOUBLEJUMPING;
 			}
@@ -1362,7 +1357,6 @@ static void PM_AirMove(void)
 
 		pm->ps->jumpTime = pm->cmd.serverTime;
 	}
-
 	PM_Friction();
 
 	fmove = pm->cmd.forwardmove;
@@ -2041,7 +2035,6 @@ static void PM_GroundTrace(void)
 
 	pml.groundPlane = qtrue;
 	pml.walking     = qtrue;
-
 	pm->ps->pm_flags &= ~PMF_DOUBLEJUMPING;
 
 	// hitting solid ground will end a waterjump

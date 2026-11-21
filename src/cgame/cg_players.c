@@ -327,13 +327,13 @@ void CG_NewClientInfo(int clientNum)
 	if (*v)
 	{
 		int  i;
-		char buf[2];
+		char *token;
+		char *str = (char *)v;
 
-		buf[1] = '\0';
 		for (i = 0; i < SK_NUM_SKILLS; i++)
 		{
-			buf[0]            = *v;
-			newInfo.medals[i] = Q_atoi(buf);
+			token             = COM_Parse(&str);
+			newInfo.medals[i] = Q_atoi(token);
 			v++;
 		}
 	}
@@ -2289,6 +2289,10 @@ static void CG_PlayerSprites(centity_t *cent)
 		{
 			CG_PlayerFloatSprite(cent, cgs.media.spawnInvincibleShader, height, numIcons++, NULL);
 		}
+		if ((cent->currentState.eFlags & EF_POISONED) && !(cent->currentState.eFlags & EF_DEAD))
+		{
+			CG_PlayerFloatSprite(cent, cgs.media.poisonedShader, height, numIcons++, NULL);
+		}
 		if (cent->currentState.powerups & (1 << PW_OPS_DISGUISED) && cgs.clientinfo[cg.clientNum].shoutcaster)
 		{
 			CG_PlayerFloatSprite(cent, cgs.media.disguisedShader, height, numIcons++, NULL);
@@ -2304,6 +2308,12 @@ static void CG_PlayerSprites(centity_t *cent)
 	if (cent->currentState.powerups & (1 << PW_INVULNERABLE))
 	{
 		CG_PlayerFloatSprite(cent, cgs.media.spawnInvincibleShader, height, numIcons++, NULL);
+	}
+
+	// poisoned players (EF_POISONED) get the poison icon, seen by everyone
+	if ((cent->currentState.eFlags & EF_POISONED) && !(cent->currentState.eFlags & EF_DEAD))
+	{
+		CG_PlayerFloatSprite(cent, cgs.media.poisonedShader, height, numIcons++, NULL);
 	}
 
 	// If this client is a medic, draw a 'revive' icon over
@@ -3339,7 +3349,10 @@ void CG_ResetPlayerEntity(centity_t *cent)
 		cent->pe.torso.pitchAngle = cent->rawAngles[PITCH];
 		cent->pe.torso.pitching   = qfalse;
 
-		ci->health = CG_GetPlayerMaxHealth(ci->clientNum, ci->cls, ci->team);
+		if (!cgs.clientinfo[cg.clientNum].shoutcaster)
+		{
+			ci->health = CG_GetPlayerMaxHealth(ci->clientNum, ci->cls, ci->team);
+		}
 	}
 
 	BG_EvaluateTrajectory(&cent->currentState.pos, cg.time, cent->lerpOrigin, qfalse, cent->currentState.effect2Time);

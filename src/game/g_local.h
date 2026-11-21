@@ -80,6 +80,24 @@
 #define TKFL_MINES              0x00000001
 #define TKFL_AIRSTRIKE          0x00000002
 #define TKFL_MORTAR             0x00000004
+#define TKFL_TRIPMINES          0x00000008  ///< no complaints for tripmine teamkills (NitMod bit)
+
+// NitMod g_friendlyFire bits. Only bit 1 turns friendly fire on, so the
+// mine bits can be added without enabling it.
+#define FF_ENABLED              1
+#define FF_NO_TEAM_LANDMINES    32          ///< teammates don't trip landmines
+#define FF_TEAM_LANDMINE_DAMAGE 64          ///< landmines and tripmines hurt teammates even with friendly fire off
+#define FF_NO_TEAM_TRIPMINES    128         ///< teammates don't set off tripmines
+#define FF_NO_OWN_LANDMINES     256         ///< you can't set off your own landmines or tripmines
+#define FF_NO_TEAM_MINE_DAMAGE  512         ///< landmines and tripmines never hurt teammates or their owner 
+#define G_FriendlyFireOn()      (g_friendlyFire.integer & FF_ENABLED)
+
+// NitMod g_weapons bit, an alternative to g_tripmines
+#define WPF_TRIPMINES           32768
+#define G_TripminesOn()         (g_tripmines.integer || (g_weapons.integer & WPF_TRIPMINES))
+
+// NitMod g_damageweapons bits
+#define DMGW_TRIPMINES          32          ///< tripmines can be shot and destroyed
 
 /**
  * @enum moverState_t
@@ -1030,6 +1048,7 @@ struct gclient_s
 	qboolean warping;
 	qboolean warped;
 	int lastCmdRealTime;
+	int realCmdServerTime;                  ///< client-authored cmd serverTime - antilag rewind time
 	int cmdhead;                            ///< antiwarp command queue head
 	int cmdcount;                           ///< antiwarp command queue # valid commands
 	float cmddelta;                         ///< antiwarp command queue # valid commands
@@ -1087,6 +1106,12 @@ struct gclient_s
 	vec3_t legacyDownedViewAngles;            ///< View direction at the moment player got downed.
 	qboolean legacyDownedViewAnglesValid;     ///< True when downed angles are valid for revive restore.
 	int legacyRevivesSinceRespawn;            ///< Number of revives since last full respawn.
+
+	// lasting poison (ps.eFlags & EF_POISONED)
+	int poisoner;                             ///< entity number of whoever poisoned us, -1 when gone
+	int poisonStartTime;                      ///< level.time of the first injection
+	int poisonStack;                          ///< number of injections, multiplies the damage
+	int poisonNextTick;                       ///< level.time of the next damage tick
 };
 
 /**
@@ -1485,6 +1510,7 @@ void Cmd_WeaponStatsLeaders_f(gentity_t *ent, unsigned int dwCommand, int value)
 void Cmd_ResetSetup_f(gentity_t *ent, unsigned int dwCommand, int value);
 void Cmd_Give_f(gentity_t *ent, unsigned int dwCommand, int value);
 void Cmd_God_f(gentity_t *ent, unsigned int dwCommand, int value);
+void Cmd_Poison_f(gentity_t *ent, unsigned int dwCommand, int value);
 void Cmd_Nofatigue_f(gentity_t *ent, unsigned int dwCommand, int value);
 void Cmd_Notarget_f(gentity_t *ent, unsigned int dwCommand, int value);
 void Cmd_Noclip_f(gentity_t *ent, unsigned int dwCommand, int value);
@@ -2008,12 +2034,8 @@ extern g_campaignInfo_t g_campaigns[];
 #define G_SpectatorInactivityValue (g_spectatorInactivity.integer ? g_spectatorInactivity.integer : 60)
 
 #define ETTV_PROTOCOL_VERSION 284
-
-extern vmCvar_t g_dynamiteCounter;
-
 extern vmCvar_t g_doubleJump;
 extern vmCvar_t g_doubleJumpHeight;
-
 /**
  * @struct GeoIPTag
  * @typedef GeoIP
@@ -2200,6 +2222,38 @@ void G_SendSystemMessage(sysMsg_t message, int team);
 int G_GetSysMessageNumber(const char *sysMsg);
 int G_CountTeamLandmines(team_t team);
 qboolean G_SweepForLandmines(vec3_t origin, float radius, int team);
+
+// tripmine 
+#define TRIPMINE_PLACE_DIST   64      ///< how far in front of the eyes the wall must be
+#define TRIPMINE_ANCHOR_DIST  512     ///< the laser needs another world surface within this distance
+// TRIPMINE_WALL_OFFSET and TRIPMINE_BEAM_LENGTH are in bg_public.h (shared with cgame)
+#define TRIPMINE_THINK_TIME   100     ///< trigger line check interval (ms)
+#define TRIPMINE_PRIME_TIME_MIN 250   ///< shortest allowed delay between armed and live (ms), see g_tripmineArmTime
+#define TRIPMINE_HEALTH       20      ///< hit points of a live mine
+
+int G_CountTeamTripmines(team_t team);
+void G_RemoveTripmines(gentity_t *ent);
+void G_TripminePrime(gentity_t *self);
+void G_TripmineExpire(gentity_t *self);
+
+// lasting poison from the poison syringe , g_poison bits
+#define POISON_ENABLED       1     ///< poison on: the poison syringe (see g_poisonLevel / g_poisonClasses), the medic syringe cures it
+#define POISON_CURE_HEALTH   2     ///< health packs and health cabinets cure poison
+#define POISON_SLOW          4     ///< 10 HP every 1.5 s per injection instead of 1 HP every 50 ms
+#define POISON_NO_OWN_CURE   8     ///< health packs dropped by your own poisoner don't cure you
+#define POISON_TEAM          16    ///< teammates can be poisoned (default: never, whatever g_friendlyFire is)
+
+void G_PoisonPlayer(gentity_t *victim, gentity_t *attacker);
+void G_CurePoison(gentity_t *ent);
+void G_PoisonThink(gentity_t *ent);
+qboolean G_PoisonCuredBy(gentity_t *ent, gentity_t *healer);
+qboolean G_PoisonSyringeAllowed(gclient_t *client);
+gentity_t *Weapon_PoisonSyringe(gentity_t *ent);
+void G_TripmineThink(gentity_t *self);
+void G_TripmineDie(gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, meansOfDeath_t mod);
+gentity_t *weapon_tripmine_fire(gentity_t *ent);
+void G_ArmTripmine(gentity_t *traceEnt, gentity_t *ent);
+void G_DisarmTripmine(gentity_t *traceEnt, gentity_t *ent);
 
 void G_AddClientToFireteam(int entityNum, int leaderNum);
 void G_InviteToFireTeam(int entityNum, int otherEntityNum);

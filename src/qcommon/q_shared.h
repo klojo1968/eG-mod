@@ -1729,6 +1729,7 @@ typedef struct ETL_260B_NOEDIT entityState_s
 
 	net_uint10_t otherEntityNum;     ///< shotgun sources, etc
 	net_uint10_t otherEntityNum2;
+	
 
 	net_uint10_t groundEntityNum;    ///< ENTITYNUM_NONE when in air - otherwise the
 	///entity number of the entity it is atop, also see
