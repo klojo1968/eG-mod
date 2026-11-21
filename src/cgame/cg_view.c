@@ -2154,7 +2154,7 @@ static void CG_DemoRewindFixEffects(void)
 		}
 
 		// reset time for landmine flag
-		if (cent->currentState.weapon == WP_LANDMINE)
+		if (IS_LANDMINE_WEAPON(cent->currentState.weapon))
 		{
 			cent->lerpFrame.frameTime = cg.time;
 		}

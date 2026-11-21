@@ -137,6 +137,7 @@ static const cmd_reference_t aCommandInfo[] =
 	{ "obj",            CMD_USAGE_ANY_TIME,          qtrue,       qfalse, Cmd_SelectedObjective_f,             " <val>:^7 Selected Objective"                                                               },
 	{ "pause",          CMD_USAGE_NO_INTERMISSION,   qtrue,       qfalse, G_pause_cmd,                         ":^7 Allows a team to pause a match"                                                         },
 	{ "players",        CMD_USAGE_ANY_TIME,          qtrue,       qtrue,  G_players_cmd,                       ":^7 Lists all active players and their IDs/information"                                     },
+	{ "poison",         CMD_USAGE_NO_INTERMISSION,   qtrue,       qfalse, Cmd_Poison_f,                        " [cure]:^7 Poison yourself, or cure it (cheat)"                          },
 	{ "rconAuth",       CMD_USAGE_ANY_TIME,          qtrue,       qfalse, Cmd_AuthRcon_f,                      ":^7 Client authentication"                                                                  },
 	{ "ready",          CMD_USAGE_NO_INTERMISSION,   qtrue,       qtrue,  G_ready_cmd,                         ":^7 Sets your status to ^5ready^7 to start a match"                                         },
 	{ "readyteam",      CMD_USAGE_NO_INTERMISSION,   qtrue,       qtrue,  G_teamready_cmd,                     ":^7 Sets an entire team's status to ^5ready^7 to start a match"                             },
@@ -1452,6 +1453,7 @@ const unsigned int cQualifyingShots[WS_MAX] =
 	30,     // 25 WS_K43
 	30,     // 26 WS_MP34
 	5,      // 27 WS_SYRINGE
+	10,     // 28 WS_TRIPMINE
 };
 
 /**

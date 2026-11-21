@@ -107,7 +107,8 @@ static qboolean G_SnapshotCallbackExt(int entityNum, int clientNum, int clientNu
 
 	if (ent->s.eType == ET_MISSILE)
 	{
-		if (ent->s.weapon == WP_LANDMINE)
+		// tripmines are hidden from enemies by the same rules as landmines 
+		if (IS_LANDMINE_WEAPON(ent->s.weapon) || ent->s.weapon == WP_TRIPMINE)
 		{
 			return G_LandmineSnapshotCallback(entityNum, clientNum);
 		}
@@ -1531,6 +1532,7 @@ void G_InitGame(int levelTime, int randomSeed, int restart, int etLegacyServer, 
 	Info_SetValueForKey(cs, "w3", team_maxRockets.string);
 	Info_SetValueForKey(cs, "w4", team_maxRiflegrenades.string);
 	Info_SetValueForKey(cs, "w5", team_maxLandmines.string);
+	Info_SetValueForKey(cs, "w6", team_maxTripmines.string);
 	Info_SetValueForKey(cs, "m", team_maxplayers.string);
 	trap_SetConfigstring(CS_TEAMRESTRICTIONS, cs);
 
@@ -1839,9 +1841,6 @@ void G_InitGame(int levelTime, int randomSeed, int restart, int etLegacyServer, 
 #else
 	G_Printf("%sNo Lua API available\n", S_COLOR_BLUE);
 #endif
-
-	// load customized tables
-	BG_CustomizeTables();
 
 	// parse the key/value pairs and spawn gentities
 	G_SpawnEntitiesFromString();
@@ -4707,6 +4706,9 @@ void G_RunFrame(int levelTime)
 	{
 		level.gameManager->s.otherEntityNum  = MAX(0, team_maxLandmines.integer - G_CountTeamLandmines(TEAM_AXIS));
 		level.gameManager->s.otherEntityNum2 = MAX(0, team_maxLandmines.integer - G_CountTeamLandmines(TEAM_ALLIES));
+		level.gameManager->s.effect1Time = MAX(0, team_maxTripmines.integer - G_CountTeamTripmines(TEAM_AXIS));
+		level.gameManager->s.effect2Time = MAX(0, team_maxTripmines.integer - G_CountTeamTripmines(TEAM_ALLIES));
+		level.gameManager->s.effect3Time = MAX(0, team_maxTripmines.integer);
 	}
 #ifdef FEATURE_LUA
 	G_LuaHook_RunFrame(levelTime);

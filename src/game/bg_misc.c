@@ -220,6 +220,10 @@ weaponTable_t weaponTable[WP_NUM_WEAPONS] =
 	{ WP_BAZOOKA,              ITEM_WEAPON_BAZOOKA,               TEAM_ALLIES, SK_HEAVY_WEAPONS,                            WP_NONE,                WP_PANZERFAUST,          WP_NONE,  WP_BAZOOKA,           WP_BAZOOKA,           400,   0,     0,          400,         300,         WEAPON_TYPE_PANZER,                        WEAPON_FIRING_MODE_ONE_SHOT,                                 WEAPON_ATTRIBUT_CHARGE_TIME | WEAPON_ATTRIBUT_SHAKE,                                                                                                         0,      0,     "BAZOOKA",             WS_BAZOOKA,         qtrue,  qfalse, 4,      1,   1,      0,         DELAY_HW,      2000,        0,          0,                0,      0,       0,               250,            250,             0,                0,              32000.f,  { 14, 10, 0 },    0,                 { 0, 0 },       { 0, 0 },      "rocket",          "bazooka",               SK_SOLDIER_PROJECTILE_STAMINA,    {1, .66f},      MOD_BAZOOKA,              MOD_BAZOOKA              },  // WP_BAZOOKA               // 53
 	{ WP_MP34,                 ITEM_WEAPON_MP34,                  TEAM_AXIS,   SK_LIGHT_WEAPONS,                            WP_NONE,                WP_STEN,                 WP_NONE,  WP_MP34,              WP_MP34,              14,    200,   0.6f,       0,           0,           WEAPON_TYPE_SMG,                           WEAPON_FIRING_MODE_AUTOMATIC,                                WEAPON_ATTRIBUT_FAST_RELOAD | WEAPON_ATTRIBUT_SILENCED | WEAPON_ATTRIBUT_KEEP_DESGUISE | WEAPON_ATTRIBUT_FALL_OFF,                                           0,      0,     "MP 34",               WS_MP34,            qtrue,  qtrue,  96,     1,   32,     3100,      DELAY_LOW,     150,         0,          15,               1200,   540,     2000,            250,            250,             0,                0,              0,        { 14, 6, -4 },    0,                 { 0, 0 },       { 0, 0 },      "",                "mp34",                  0,                                {1, 1},         MOD_MP34,                 MOD_MP34                 },  // WP_MP34                  // 54   // Solothurn S1-100 SMG
 	{ WP_AIRSTRIKE,            ITEM_WEAPON_AIRSTRIKE,             TEAM_FREE,   SK_SIGNALS,                                  WP_NONE,                WP_NONE,                 WP_NONE,  WP_AIRSTRIKE,         WP_AIRSTRIKE,         400,   0,     0,          400,         400,         WEAPON_TYPE_NONE,                          WEAPON_FIRING_MODE_NONE,                                     WEAPON_ATTRIBUT_CHARGE_TIME | WEAPON_ATTRIBUT_SHAKE,                                                                                                         0,      0,     "",                    WS_AIRSTRIKE,       qfalse, qfalse, 1,      0,   1,      0,         50,            1000,        0,          0,                0,      0,       0,               250,            250,             0,                0,              0,        { 14, 6, -4 },    0,                 { 0, 0 },       { 0, 0 },      "air strike",      "airstrike",             SK_FIELDOPS_FIRE_SUPPORT_STAMINA, {1, .66f},      MOD_AIRSTRIKE,            MOD_AIRSTRIKE            },  // WP_AIRSTRIKE             // 55   // airstrike shell bomb
+	{ WP_TRIPMINE,             ITEM_WEAPON_TRIPMINE,              TEAM_FREE,   SK_EXPLOSIVES_AND_CONSTRUCTION,              WP_NONE,                WP_NONE,                 WP_NONE,  WP_TRIPMINE,          WP_TRIPMINE,          0,     0,     0,          250,         250,         WEAPON_TYPE_NONE,                          WEAPON_FIRING_MODE_ONE_SHOT,                                 WEAPON_ATTRIBUT_CHARGE_TIME | WEAPON_ATTRIBUT_KEEP_DESGUISE | WEAPON_ATTRIBUT_NEVER_LOST_DESGUISE | WEAPON_ATTRIBUT_FIRE_UNDERWATER | WEAPON_ATTRIBUT_SHAKE, 0,      0,     "",                    WS_TRIPMINE,        qtrue,  qfalse, 1,      0,   1,      100,       100,           100,         0,          0,                0,      0,       0,               250,            250,             0,                0,              0,        { 14, 6, -4 },    0,                 { 0, 0 },       { 0, 0 },      "tripmine",        "tripmine",                SK_ENGINEER_STAMINA,              {.5f, .33f},    MOD_TRIPMINE,             MOD_TRIPMINE             },  // WP_TRIPMINE            // 56   // wall-mounted laser mine, placed (not thrown); model from NitMod 2.3.5 (see models/multiplayer/tripmine/CREDITS.txt)
+	{ WP_POISON_SYRINGE,       ITEM_WEAPON_POISON_SYRINGE,        TEAM_FREE,   SK_LIGHT_WEAPONS,                            WP_NONE,                WP_NONE,                 WP_NONE,  WP_POISON_SYRINGE,    WP_POISON_SYRINGE,     1,     0,     0,          0,           0,          WEAPON_TYPE_SYRINGUE,                      WEAPON_FIRING_MODE_MANUAL,                                   WEAPON_ATTRIBUT_FIRE_UNDERWATER,                                                                                                                             0,      0,     "POISON",              WS_SYRINGE,         qtrue,  qfalse, 8,      1,   1,      0,         50,            500,         0,          0,                0,      0,       0,               250,            250,             0,                0,              0,        { 14, 6, -4 },    0,                 { 0, 0 },       { 0, 0 },      "",                "poison",                0,                                {1, 1},         MOD_POISON,               MOD_POISON               },  // WP_POISON_SYRINGE       // 57   // injects lasting poison (EF_POISONED); NitMod ammo 4 (max 8), 500 ms between shots
+	{ WP_BOMB,                 ITEM_WEAPON_BOMB,                  TEAM_FREE,   SK_EXPLOSIVES_AND_CONSTRUCTION,              WP_NONE,                WP_NONE,                 WP_NONE,  WP_BOMB,              WP_BOMB,              0,     0,     0,          350,         300,         WEAPON_TYPE_NONE,                          WEAPON_FIRING_MODE_THROWABLE | WEAPON_FIRING_MODE_ONE_SHOT,  WEAPON_ATTRIBUT_CHARGE_TIME | WEAPON_ATTRIBUT_FIRE_UNDERWATER | WEAPON_ATTRIBUT_SHAKE,                                                                       0,      0,     "BOMB",                WS_MAX,             qfalse, qfalse, 1,      0,   1,      1000,      DELAY_THROW,   1600,        4000,       0,                0,      0,       0,               250,            250,             0,                0,              0,        { 14, 20, 0 },    0,                 { 0, 0 },       { 0, 0 },      "bomb",            "bomb",                  SK_ENGINEER_STAMINA,              {1, .66f},      MOD_BOMB,                MOD_BOMB                 },  // WP_BOMB                  // 56   // Nitmod style thrown bomb
+	{ WP_POISON_MINE,          ITEM_WEAPON_POISON_MINE,           TEAM_FREE,   SK_EXPLOSIVES_AND_CONSTRUCTION,              WP_NONE,                WP_NONE,                 WP_NONE,  WP_POISON_MINE,       WP_POISON_MINE,       0,     0,     0,          20,          250,         WEAPON_TYPE_NONE,                          WEAPON_FIRING_MODE_THROWABLE | WEAPON_FIRING_MODE_ONE_SHOT,  WEAPON_ATTRIBUT_CHARGE_TIME | WEAPON_ATTRIBUT_KEEP_DESGUISE | WEAPON_ATTRIBUT_NEVER_LOST_DESGUISE | WEAPON_ATTRIBUT_FIRE_UNDERWATER | WEAPON_ATTRIBUT_SHAKE, 0,      0,     "",                    WS_LANDMINE,        qtrue,  qfalse, 1,      0,   1,      100,       100,           100,         0,          0,                0,      0,       0,               250,            250,             0,                0,              0,        { 14, 6, -4 },    0,                 { 0, 0 },       { 0, 0 },      "poison_mine",     "landmine_pgas",         SK_ENGINEER_STAMINA,              {.5f, .33f},    MOD_POISON_MINE,          MOD_POISON_MINE          },  // WP_POISON_MINE          // 51   // splashDamage = damage per gas tick, splashRadius = gas damage radius (values from Nitmod weapon 51)
 };
 
 /**
@@ -332,6 +336,11 @@ modTable_t modTable[MOD_NUM_MODS] =
 	{ MOD_BAZOOKA,                            WP_BAZOOKA,              qfalse,    qtrue,      WEAPON_CLASS_FOR_MOD_EXPLOSIVE, qfalse,      "was blasted by",            "'s Bazooka",                     "vaporized himself",                     NULL,                                     "MOD_BAZOOKA",                            SK_HEAVY_WEAPONS,                            3.f,             3.f,             {0.f, 0.f, 0.f, 0.f}, qfalse,      "rocket launcher",     3,            WS_BAZOOKA         },
 	{ MOD_BACKSTAB,                           WP_NONE,                 qfalse,    qfalse,     WEAPON_CLASS_FOR_MOD_NO,        qtrue,       "was backstabbed by",        "'s knife arts",                  "killed himself",                        NULL,                                     "MOD_BACKSTAB",                           SK_LIGHT_WEAPONS,                            5.f,             0.f,             {0.f, 0.f, 0.f, 0.f}, qfalse,      "backstab",            1,            WS_KNIFE           },
 	{ MOD_MP34,                               WP_MP34,                 qtrue,     qfalse,     WEAPON_CLASS_FOR_MOD_NO,        qfalse,      "was killed by",             "'s MP 34",                       "killed himself",                        NULL,                                     "MOD_MP34",                               SK_LIGHT_WEAPONS,                            3.f,             0.f,             {5.f, 3.f, 3.f, 3.f}, qtrue,       "",                    2,            WS_MP34            },
+	{ MOD_TRIPMINE,                           WP_TRIPMINE,             qfalse,    qtrue,      WEAPON_CLASS_FOR_MOD_EXPLOSIVE, qfalse,      "tripped over",              "'s Tripmine",                    "forgot where his tripmine was",         NULL,                                     "MOD_TRIPMINE",                           SK_EXPLOSIVES_AND_CONSTRUCTION,              4.f,             3.f,             {0.f, 0.f, 0.f, 0.f}, qfalse,      "tripmine",            3,            WS_TRIPMINE        },
+	{ MOD_POISON,                             WP_POISON_SYRINGE,       qfalse,    qfalse,     WEAPON_CLASS_FOR_MOD_NO,        qfalse,      "was poisoned by",           "",                               "poisoned himself",                      "died of poison",                         "MOD_POISON",                             SK_LIGHT_WEAPONS,                            3.f,             0.f,             {0.f, 0.f, 0.f, 0.f}, qfalse,      "poison",              0,            WS_SYRINGE         },
+	{ MOD_BOMB,                               WP_BOMB,                 qfalse,    qtrue,      WEAPON_CLASS_FOR_MOD_EXPLOSIVE, qfalse,      "was blasted by",            "'s bomb",                        "blew himself up",                       NULL,                                     "MOD_BOMB",                               SK_EXPLOSIVES_AND_CONSTRUCTION,              3.f,             3.f,             {0.f, 0.f, 0.f, 0.f}, qfalse,      "bomb",                3,            WS_MAX             },
+	{ MOD_POISON_MINE,                        WP_POISON_MINE,          qfalse,    qfalse,     WEAPON_CLASS_FOR_MOD_NO,        qfalse,      "was gassed by",             "'s Poison Mine",                 "gassed himself",                        NULL,                                     "MOD_POISON_MINE",                        SK_EXPLOSIVES_AND_CONSTRUCTION,              3.f,             3.f,             {0.f, 0.f, 0.f, 0.f}, qfalse,      "poison mine",         3,            WS_LANDMINE        },
+
 };
 
 // *INDENT-ON*
@@ -1204,8 +1213,32 @@ gitem_t bg_itemlist[] =
 		PW_NONE,
 #ifdef CGAMEDLL
 		{ 0, { 0 }, { 0 } },
+
+#endif
+ },
+	// weapon_bomb
+{
+	ITEM_WEAPON_BOMB,
+		"weapon_bomb",
+		"",
+		{
+			"models/multiplayer/bomb/bomb.md3",
+			"models/weapons2/bomb/v_bomb.md3",
+			0
+			 },
+		"icons/iconw_dynamite_1",    // icon
+		"icons/ammo9",           // ammo icon
+		"Bomb",                  // pickup
+		7,
+		IT_WEAPON,
+		WP_BOMB,
+		PW_NONE,
+		#ifdef CGAMEDLL
+		 { 0, { 0 }, { 0 } },
+
 #endif
 	},
+
 	/** QUAKED weapon_flamethrower (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
 	-------- MODEL FOR RADIANT ONLY - DO NOT SET THIS AS A KEY --------
 	model="models/weapons2/flamethrower/flamethrower.md3"
@@ -2408,6 +2441,69 @@ gitem_t bg_itemlist[] =
 #ifdef CGAMEDLL
 		{ 0, { 0 }, { 0 } },
 #endif
+ },
+	// weapon_poisonmine
+{
+		ITEM_WEAPON_POISON_MINE,
+			"weapon_poisonmine",
+			"",
+			{
+				"models/multiplayer/landmine/plandmine.md3",
+				"models/multiplayer/landmine/v_landmine.md3",
+				0
+				 },
+			"icons/iconw_plandmine_1_select",    // icon
+			"icons/ammo9",           // ammo icon
+			"Poison Mine",   // pickup
+			7,
+			IT_WEAPON,
+			WP_POISON_MINE,
+			PW_NONE,
+			#ifdef CGAMEDLL
+			 { 0, { 0 }, { 0 } },
+#endif
+	},
+	// weapon_tripmine (Dirty Double Jump)
+	{
+		ITEM_WEAPON_TRIPMINE,
+		"weapon_tripmine",
+		"",
+		{
+			"models/multiplayer/tripmine/tripmine.md3",
+			"models/multiplayer/tripmine/v_tripmine.md3",
+			0
+		},
+		"icons/iconw_tripmine_1_select",    // icon
+		"icons/ammo9",               // ammo icon
+		"Tripmine",                  // pickup
+		7,
+		IT_WEAPON,
+		WP_TRIPMINE,
+		PW_NONE,
+#ifdef CGAMEDLL
+		{ 0, { 0 }, { 0 } },
+#endif
+	},
+	// weapon_poison_syringe 
+	{
+		ITEM_WEAPON_POISON_SYRINGE,
+		"weapon_poison_syringe",
+		"",
+		{
+			"models/multiplayer/syringe/syringe.md3",
+			"models/multiplayer/syringe/v_syringe.md3",
+			0
+		},
+		"icons/iconw_syringe_1",     // icon
+		"icons/ammo2",               // ammo icon
+		"Poison Syringe",            // pickup
+		50,                          // this should never be picked up
+		IT_WEAPON,
+		WP_POISON_SYRINGE,
+		PW_NONE,
+#ifdef CGAMEDLL
+		{ 0, { 0 }, { 0 } },
+#endif
 	},
 	/// end of list marker
 	{
@@ -3343,7 +3439,7 @@ void BG_EvaluateTrajectory(const trajectory_t *tr, int atTime, vec3_t result, qb
 
 		break;
 	default:
-		Com_Error(ERR_DROP, "BG_EvaluateTrajectory: unknown trType: %i", tr->trTime);
+		Com_Error(ERR_DROP, "BG_EvaluateTrajectory: unknown trType: %i", tr->trType);
 	}
 }
 
@@ -3424,7 +3520,7 @@ void BG_EvaluateTrajectoryDelta(const trajectory_t *tr, int atTime, vec3_t resul
 		VectorClear(result);
 		break;
 	default:
-		Com_Error(ERR_DROP, "BG_EvaluateTrajectoryDelta: unknown trType: %i", tr->trTime);
+		Com_Error(ERR_DROP, "BG_EvaluateTrajectoryDelta: unknown trType: %i", tr->trType);
 	}
 }
 
@@ -4217,24 +4313,25 @@ void BG_AdjustAAGunMuzzleForBarrel(vec_t *origin, vec_t *forward, vec_t *right, 
  * @brief PC_SourceWarning
  * @param[in] handle
  * @param[in] format
- */
+ * @note Unused
 void PC_SourceWarning(int handle, const char *format, ...)
 {
-	int         line;
-	char        filename[MAX_QPATH];
-	va_list     argptr;
-	static char string[4096];
+    int         line;
+    char        filename[MAX_QPATH];
+    va_list     argptr;
+    static char string[4096];
 
-	va_start(argptr, format);
-	Q_vsnprintf(string, sizeof(string), format, argptr);
-	va_end(argptr);
+    va_start(argptr, format);
+    Q_vsnprintf(string, sizeof(string), format, argptr);
+    va_end(argptr);
 
-	filename[0] = '\0';
-	line        = 0;
-	trap_PC_SourceFileAndLine(handle, filename, &line);
+    filename[0] = '\0';
+    line        = 0;
+    trap_PC_SourceFileAndLine(handle, filename, &line);
 
-	Com_Printf(S_COLOR_YELLOW "WARNING: %s, line %d: %s\n", filename, line, string);
+    Com_Printf(S_COLOR_YELLOW "WARNING: %s, line %d: %s\n", filename, line, string);
 }
+*/
 
 /**
  * @brief PC_SourceError
@@ -4627,7 +4724,8 @@ const weap_ws_t aWeaponInfo[WS_MAX] =
 	{ qtrue,  "SGRN", "Scp.Garand" },  // 24 WS_GARAND
 	{ qtrue,  "SK43", "Scp.K43"    },  // 25 WS_K43
 	{ qtrue,  "MP34", "MP 34"      },  // 26 WS_MP34
-	{ qfalse, "SRNG", "Syringe"    }   // 27 WS_SYRINGE
+	{ qfalse, "SRNG", "Syringe"    },  // 27 WS_SYRINGE
+	{ qfalse, "TRPM", "Tripmine"   }   // 28 WS_TRIPMINE
 };
 
 /**
@@ -4988,177 +5086,5 @@ void BG_LegsCollisionBoxOffset(vec3_t viewangles, int eFlags, vec3_t legsOffset)
 	else            // EF_PRONE
 	{
 		VectorScale(flatforward, -32, legsOffset);
-	}
-}
-
-static inline int BG_CustomizeWeaponTableFromPositiveInt(int handle, pc_token_t *token, char *key, int *weaponTablePtr)
-{
-	int value;
-
-	if (!Q_stricmp(token->string, key))
-	{
-		if (PC_Int_Parse(handle, &value) && value >= 0)
-		{
-			*weaponTablePtr = value;
-		}
-		return qtrue;
-	}
-	return qfalse;
-}
-
-static inline int BG_CustomizeWeaponTableFromStrictlyPositiveInt(int handle, pc_token_t *token, char *key, int *weaponTablePtr)
-{
-	int value;
-
-	if (!Q_stricmp(token->string, key))
-	{
-		if (PC_Int_Parse(handle, &value) && value > 0)
-		{
-			*weaponTablePtr = value;
-		}
-		return qtrue;
-	}
-	return qfalse;
-}
-
-static inline int BG_CustomizeWeaponTableFromCappedUInt(int handle, pc_token_t *token, char *key, unsigned int *weaponTablePtr, unsigned int max)
-{
-	int value;
-
-	if (!Q_stricmp(token->string, key))
-	{
-		if (PC_Int_Parse(handle, &value) && value >= 0 && (unsigned)value < max)
-		{
-			*weaponTablePtr = (unsigned)value;
-		}
-		return qtrue;
-	}
-	return qfalse;
-}
-
-/**
- * @brief BG_CustomizeWeaponTable
- * @param[in] weaponNum
- */
-static void BG_CustomizeWeaponTable(weapon_t weaponNum)
-{
-	const char *filename;
-	int        handle;
-	pc_token_t token;
-	int        value;
-
-	if (!GetWeaponTableData(weaponNum)->weapFile)
-	{
-		return;
-	}
-
-	filename = va("weapontable/%s.weapontable", GetWeaponTableData(weaponNum)->weapFile);
-	handle = trap_PC_LoadSource(filename);
-	if (!handle)
-	{
-		return;
-	}
-
-	if (!trap_PC_ReadToken(handle, &token) || Q_stricmp(token.string, "weaponTable"))
-	{
-#ifdef GAMEDLL
-		PC_SourceWarning(handle, "expected 'weaponTable'");
-#endif
-		goto clean;
-	}
-
-	if (!trap_PC_ReadToken(handle, &token) || Q_stricmp(token.string, "{"))
-	{
-#ifdef GAMEDLL
-		PC_SourceWarning(handle, "expected '{'");
-#endif
-		goto clean;
-	}
-
-	while (1)
-	{
-		if (!trap_PC_ReadToken(handle, &token))
-		{
-			break;
-		}
-
-		if (token.string[0] == '}')
-		{
-			break;
-		}
-
-		if (BG_CustomizeWeaponTableFromCappedUInt(
-			handle, &token, "skillBased", &GetWeaponTableData(weaponNum)->skillBased, SK_NUM_SKILLS))
-		{
-			continue;
-		}
-#ifdef GAMEDLL
-		if (BG_CustomizeWeaponTableFromStrictlyPositiveInt(
-			handle, &token, "damage", &GetWeaponTableData(weaponNum)->damage))
-		{
-			continue;
-		}
-#endif
-		if (BG_CustomizeWeaponTableFromStrictlyPositiveInt(
-			handle, &token, "maxAmmo", &GetWeaponTableData(weaponNum)->maxAmmo))
-		{
-			continue;
-		}
-		if (BG_CustomizeWeaponTableFromStrictlyPositiveInt(
-			handle, &token, "maxClip", &GetWeaponTableData(weaponNum)->maxClip))
-		{
-			continue;
-		}
-		if (BG_CustomizeWeaponTableFromPositiveInt(
-			handle, &token, "reloadTime", &GetWeaponTableData(weaponNum)->reloadTime))
-		{
-			continue;
-		}
-		if (BG_CustomizeWeaponTableFromStrictlyPositiveInt(
-			handle, &token, "fireDelayTime", &GetWeaponTableData(weaponNum)->fireDelayTime))
-		{
-			continue;
-		}
-		if (BG_CustomizeWeaponTableFromStrictlyPositiveInt(
-			handle, &token, "nextShotTime", &GetWeaponTableData(weaponNum)->nextShotTime))
-		{
-			continue;
-		}
-		if (BG_CustomizeWeaponTableFromPositiveInt(
-			handle, &token, "maxHeat", &GetWeaponTableData(weaponNum)->maxHeat))
-		{
-			continue;
-		}
-		if (BG_CustomizeWeaponTableFromPositiveInt(
-			handle, &token, "coolRate", &GetWeaponTableData(weaponNum)->coolRate))
-		{
-			continue;
-		}
-		if (BG_CustomizeWeaponTableFromPositiveInt(
-			handle, &token, "heatRecoveryTime", &GetWeaponTableData(weaponNum)->heatRecoveryTime))
-		{
-			continue;
-		}
-#ifdef GAMEDLL
-		PC_SourceWarning(handle, "unknown token '%s'", token.string);
-#endif
-	}
-
-clean:
-	trap_PC_FreeSource(handle);
-}
-
-/**
- * @brief BG_CustomizeTables
- */
-void BG_CustomizeTables(void)
-{
-	weapon_t       weaponNum;
-	meansOfDeath_t modNum;
-	int            classNum;
-
-	for (weaponNum = WP_KNIFE; weaponNum < WP_NUM_WEAPONS; weaponNum++)
-	{
-		BG_CustomizeWeaponTable(weaponNum);
 	}
 }

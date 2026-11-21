@@ -77,6 +77,7 @@ cvar_t *r_mode;
 cvar_t *r_customaspect;
 cvar_t *r_displayRefresh;
 cvar_t *r_windowLocation;
+cvar_t *r_windowHidden;
 
 // Window surface cvars
 cvar_t *r_stencilbits;  // number of desired stencil bits
@@ -412,6 +413,7 @@ static void GLimp_InitCvars(void)
 	r_displayRefresh = Cvar_Get("r_displayRefresh", "0", CVAR_LATCH);
 	Cvar_CheckRange(r_displayRefresh, 0, 480, qtrue);
 	r_windowLocation = Cvar_Get("r_windowLocation", "0,-1,-1", CVAR_ARCHIVE | CVAR_PROTECTED);
+	r_windowHidden   = Cvar_Get("r_windowHidden", "0", CVAR_INIT | CVAR_NOTABCOMPLETE | CVAR_NODEFAULT);
 
 	// Window render surface cvars
 	r_stencilbits = Cvar_Get("r_stencilbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE);
@@ -960,34 +962,50 @@ static int GLimp_SetMode(glconfig_t *glConfig, int mode, qboolean fullscreen, qb
 			perChannelColorBits = 4;
 		}
 
-#ifdef __sgi // Fix for SGIs grabbing too many bits of color
-		if (perChannelColorBits == 4)
+		// Vulkan windows don't use any SDL_GL_* attributes/context - the
+		// Vulkan device/surface/swapchain setup (triggered below via
+		// re.InitOpenGLSubSystem()) takes care of all of that instead.
+		if (!(flags & SDL_WINDOW_VULKAN))
 		{
-			perChannelColorBits = 0; /* Use minimum size for 16-bit color */
+#ifdef __sgi // Fix for SGIs grabbing too many bits of color
+			if (perChannelColorBits == 4)
+			{
+				perChannelColorBits = 0; /* Use minimum size for 16-bit color */
 
-		}
-		// Need alpha or else SGIs choose 36+ bit RGB mode
-		SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 1);
+			}
+			// Need alpha or else SGIs choose 36+ bit RGB mode
+			SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 1);
 #endif
 
-		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, perChannelColorBits);
-		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, perChannelColorBits);
-		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, perChannelColorBits);
-		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, testDepthBits);
-		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, testStencilBits);
+			SDL_GL_SetAttribute(SDL_GL_RED_SIZE, perChannelColorBits);
+			SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, perChannelColorBits);
+			SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, perChannelColorBits);
+			SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, testDepthBits);
+			SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, testStencilBits);
 
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, samples ? 1 : 0);
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, samples);
+			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, samples ? 1 : 0);
+			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, samples);
 
-		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+			SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-		// If not allowing software GL, demand accelerated
-		if (!r_allowSoftwareGL->integer)
-		{
-			SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+			// If not allowing software GL, demand accelerated
+			if (!r_allowSoftwareGL->integer)
+			{
+				SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+			}
 		}
 
-		main_window = SDL_CreateWindow(GlobalGameTitle, x, y, glConfig->vidWidth, glConfig->vidHeight, flags | SDL_WINDOW_SHOWN);
+		if (r_windowHidden->integer)
+		{
+			flags |= SDL_WINDOW_HIDDEN;
+			x      = y = SDL_WINDOWPOS_UNDEFINED;
+		}
+		else
+		{
+			flags |= SDL_WINDOW_SHOWN;
+		}
+
+		main_window = SDL_CreateWindow(GlobalGameTitle, x, y, glConfig->vidWidth, glConfig->vidHeight, flags);
 
 		if (!main_window)
 		{
@@ -1020,46 +1038,49 @@ static int GLimp_SetMode(glconfig_t *glConfig, int mode, qboolean fullscreen, qb
 
 		SDL_SetWindowIcon(main_window, icon);
 
-		if (flags & SDL_WINDOW_OPENGL && contextVersion > 0)
+		if (!(flags & SDL_WINDOW_VULKAN))
 		{
-			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major);
-			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor);
-
-			switch (contextVersion)
+			if (flags & SDL_WINDOW_OPENGL && contextVersion > 0)
 			{
-			case GL_CONTEXT_COMP:
-				SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
-				break;
-			case GL_CONTEXT_CORE:
-				SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-				SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-				break;
-			case GL_CONTEXT_ES:
-				SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-				break;
-			case GL_CONTEXT_EGL:
-				SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-				SDL_GL_SetAttribute(SDL_GL_CONTEXT_EGL, 1);
-				break;
-			default:
-				break;
+				SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major);
+				SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor);
+
+				switch (contextVersion)
+				{
+				case GL_CONTEXT_COMP:
+					SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+					break;
+				case GL_CONTEXT_CORE:
+					SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+					SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+					break;
+				case GL_CONTEXT_ES:
+					SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+					break;
+				case GL_CONTEXT_EGL:
+					SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+					SDL_GL_SetAttribute(SDL_GL_CONTEXT_EGL, 1);
+					break;
+				default:
+					break;
+				}
 			}
-		}
 
-		if ((SDL_glContext = SDL_GL_CreateContext(main_window)) == NULL)
-		{
-			Com_Printf("SDL_GL_CreateContext failed: %s\n", SDL_GetError());
-			continue;
-		}
+			if ((SDL_glContext = SDL_GL_CreateContext(main_window)) == NULL)
+			{
+				Com_Printf("SDL_GL_CreateContext failed: %s\n", SDL_GetError());
+				continue;
+			}
 
-		if (SDL_GL_MakeCurrent(main_window, SDL_glContext) < 0)
-		{
-			Com_Printf("SDL_GL_MakeCurrent failed: %s\n", SDL_GetError());
-		}
+			if (SDL_GL_MakeCurrent(main_window, SDL_glContext) < 0)
+			{
+				Com_Printf("SDL_GL_MakeCurrent failed: %s\n", SDL_GetError());
+			}
 
-		if (SDL_GL_SetSwapInterval(r_swapInterval->integer) == -1)
-		{
-			Com_Printf("SDL_GL_SetSwapInterval failed: %s\n", SDL_GetError());
+			if (SDL_GL_SetSwapInterval(r_swapInterval->integer) == -1)
+			{
+				Com_Printf("SDL_GL_SetSwapInterval failed: %s\n", SDL_GetError());
+			}
 		}
 
 		glConfig->colorBits   = testColorBits;
@@ -1140,7 +1161,31 @@ static qboolean GLimp_StartDriverAndSetMode(glconfig_t *glConfig, int mode, qboo
 #ifdef FEATURE_RENDERER_VULKAN
 		if (Q_stricmp(Info_ValueForKey(glConfigString, "type"), "vulkan") == 0)
 		{
-			SDL_Vulkan_LoadLibrary(NULL);
+			qboolean loaded = qfalse;
+#ifdef __APPLE__
+			char *basePath;
+
+			// MoltenVK in the app bundle (Contents/Frameworks, next to the
+			// Resources folder SDL_GetBasePath() returns), unless
+			// SDL_VULKAN_LIBRARY names another library, e.g. the Vulkan SDK
+			// loader for the validation layer
+			if (!getenv("SDL_VULKAN_LIBRARY") && (basePath = SDL_GetBasePath()) != NULL)
+			{
+				char moltenVK[MAX_OSPATH];
+
+				Com_sprintf(moltenVK, sizeof(moltenVK), "%s../Frameworks/libMoltenVK.dylib", basePath);
+				SDL_free(basePath);
+				if (SDL_Vulkan_LoadLibrary(moltenVK) == 0)
+				{
+					Com_Printf("Vulkan library: %s\n", moltenVK);
+					loaded = qtrue;
+				}
+			}
+#endif
+			if (!loaded && SDL_Vulkan_LoadLibrary(NULL) != 0)
+			{
+				Com_Printf("SDL_Vulkan_LoadLibrary failed: %s\n", SDL_GetError());
+			}
 		}
 #endif
 
@@ -1249,16 +1294,90 @@ success:
 extern int CL_ScaledMilliseconds(void);
 #endif
 
+#ifdef FEATURE_RENDERER_VULKAN
+/**
+ * @brief Returns the list of SDL-required Vulkan instance extension names
+ * for the current window/platform (e.g. VK_KHR_surface + the platform
+ * surface extension). Called by the Vulkan renderer before vkCreateInstance.
+ * @param[out] count number of extension name strings written to names
+ * @param[out] names caller-allocated array of at least *count entries; pass
+ * names == NULL to query the required count first.
+ * @return qfalse on failure (and prints the SDL error)
+ */
+qboolean VKimp_GetInstanceExtensions(unsigned int *count, const char **names)
+{
+	if (!main_window)
+	{
+		Com_Printf("VKimp_GetInstanceExtensions: no window created yet\n");
+		return qfalse;
+	}
+
+	if (!SDL_Vulkan_GetInstanceExtensions(main_window, count, names))
+	{
+		Com_Printf("SDL_Vulkan_GetInstanceExtensions failed: %s\n", SDL_GetError());
+		return qfalse;
+	}
+
+	return qtrue;
+}
+
+/**
+ * @brief Creates a VkSurfaceKHR for the main window.
+ * @param[in] instance a VkInstance
+ * @param[out] surface receives the created VkSurfaceKHR (as void* to avoid a
+ * vulkan.h include here)
+ * @return qfalse on failure (and prints the SDL error)
+ */
+qboolean VKimp_CreateSurface(void *instance, void **surface)
+{
+	if (!main_window)
+	{
+		Com_Printf("VKimp_CreateSurface: no window created yet\n");
+		return qfalse;
+	}
+
+	if (!SDL_Vulkan_CreateSurface(main_window, (SDL_vulkanInstance)instance, (SDL_vulkanSurface *)surface))
+	{
+		Com_Printf("SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
+		return qfalse;
+	}
+
+	return qtrue;
+}
+
+/**
+ * @brief Returns vkGetInstanceProcAddr from the Vulkan loader library that
+ * SDL opened (libvulkan.so.1 / vulkan-1.dll / the macOS loader).
+ * @return the function pointer as void* (to avoid a vulkan.h include here),
+ * or NULL if no Vulkan library could be loaded
+ */
+void *VKimp_GetInstanceProcAddr(void)
+{
+	void *proc = SDL_Vulkan_GetVkGetInstanceProcAddr();
+
+	if (!proc)
+	{
+		Com_Printf("SDL_Vulkan_GetVkGetInstanceProcAddr failed: %s\n", SDL_GetError());
+	}
+
+	return proc;
+}
+#endif
+
 /**
  * @brief Responsible for doing a swapbuffers
  */
 void GLimp_EndFrame(void)
 {
-	// don't flip if drawing to front buffer
-	//FIXME: remove this nonesense
-	if (Q_stricmp(Cvar_VariableString("r_drawBuffer"), "GL_FRONT") != 0)
+	// Vulkan windows present via the swapchain (vulkan/vk.c), not SDL_GL_SwapWindow
+	if (!(SDL_GetWindowFlags(main_window) & SDL_WINDOW_VULKAN))
 	{
-		SDL_GL_SwapWindow(main_window);
+		// don't flip if drawing to front buffer
+		//FIXME: remove this nonesense
+		if (Q_stricmp(Cvar_VariableString("r_drawBuffer"), "GL_FRONT") != 0)
+		{
+			SDL_GL_SwapWindow(main_window);
+		}
 	}
 
 	if (r_fullscreen->modified)

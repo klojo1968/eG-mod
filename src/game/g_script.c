@@ -898,10 +898,6 @@ void mountedmg42_fire(gentity_t *other)
 
 	SnapVector(muzzle);
 
-	// ent & activator are same for Fire_Lead_Ext
-	//self->s.eFlags  |= EF_MG42_ACTIVE;
-	other->s.eFlags |= EF_MG42_ACTIVE;
-
 #ifdef FEATURE_LUA
 	if (!G_LuaHook_MountedMGFire(other->s.number))
 #endif
@@ -1414,6 +1410,9 @@ void SP_script_multiplayer(gentity_t *ent)
 	level.gameManager                    = ent;
 	level.gameManager->s.otherEntityNum  = team_maxLandmines.integer;  // axis landmine count
 	level.gameManager->s.otherEntityNum2 = team_maxLandmines.integer;  // allies landmine count
+	level.gameManager->s.effect1Time = team_maxTripmines.integer;  // axis tripmine count left
+	level.gameManager->s.effect2Time = team_maxTripmines.integer;  // allies tripmine count left
+	level.gameManager->s.effect3Time = team_maxTripmines.integer;  // total tripmine count
 	level.gameManager->s.modelindex      = qfalse; // axis HQ doesn't exist
 	level.gameManager->s.modelindex2     = qfalse; // allied HQ doesn't exist
 

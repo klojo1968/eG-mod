@@ -887,6 +887,173 @@ qboolean ClientInactivityTimer(gclient_t *client)
 }
 
 /**
+ * @brief  may this player carry the poison syringe? Needs g_poison, a class listed in
+ * g_poisonClasses (1 soldier, 2 medic, 4 engineer, 8 field ops, 16 covert ops; 0 = all) and at least
+ * g_poisonLevel in Light Weapons. The level is recalculated first: a new session starts at level 0 and is
+ * only recalculated when XP comes in, which matters on servers giving free levels (skill_* "-1").
+ * @param[in,out] client
+ * @return
+ */
+qboolean G_PoisonSyringeAllowed(gclient_t *client)
+{
+	int level = Com_Clamp(0, NUM_SKILL_LEVELS - 1, g_poisonLevel.integer);
+
+	if (!client || !g_poison.integer)
+	{
+		return qfalse;
+	}
+
+	if (client->sess.sessionTeam != TEAM_AXIS && client->sess.sessionTeam != TEAM_ALLIES)
+	{
+		return qfalse;
+	}
+
+	if (g_poisonClasses.integer && !(g_poisonClasses.integer & (1 << client->sess.playerType)))
+	{
+		return qfalse;
+	}
+
+	G_SetPlayerSkill(client, SK_LIGHT_WEAPONS);
+
+	return client->sess.skill[SK_LIGHT_WEAPONS] >= level ? qtrue : qfalse;
+}
+
+/**
+ * @brief  poison a player (poison syringe). A second injection makes the
+ * poison stronger and credits the latest poisoner.
+ * @param[in,out] victim
+ * @param[in] attacker
+ */
+void G_PoisonPlayer(gentity_t *victim, gentity_t *attacker)
+{
+	gclient_t *client;
+
+	if (!victim || !victim->client || victim->health <= 0)
+	{
+		return;
+	}
+
+	client           = victim->client;
+	client->poisoner = attacker ? attacker->s.number : -1;
+
+	if (client->ps.eFlags & EF_POISONED)
+	{
+		client->poisonStack++;
+		return;
+	}
+
+	client->ps.eFlags      |= EF_POISONED;
+	client->poisonStartTime = level.time;
+	client->poisonStack     = 1;
+	client->poisonNextTick  = level.time + ((g_poison.integer & POISON_SLOW) ? 1500 : 50);
+}
+
+/**
+ * @brief  clear the poisoned state.
+ * @param[in,out] ent
+ */
+void G_CurePoison(gentity_t *ent)
+{
+	if (!ent || !ent->client)
+	{
+		return;
+	}
+
+	ent->client->ps.eFlags      &= ~EF_POISONED;
+	ent->client->poisoner        = -1;
+	ent->client->poisonStartTime = 0;
+	ent->client->poisonStack     = 0;
+	ent->client->poisonNextTick  = 0;
+}
+
+/**
+ * @brief  does healing from @p healer (a health pack's owner, or NULL for a
+ * health cabinet) cure the poison? g_poison bit 2 enables cures, bit 8 stops the poisoner's own packs curing.
+ * @param[in] ent
+ * @param[in] healer
+ * @return
+ */
+qboolean G_PoisonCuredBy(gentity_t *ent, gentity_t *healer)
+{
+	if (!ent || !ent->client || !(ent->client->ps.eFlags & EF_POISONED))
+	{
+		return qfalse;
+	}
+
+	if (!(g_poison.integer & POISON_CURE_HEALTH))
+	{
+		return qfalse;
+	}
+
+	if ((g_poison.integer & POISON_NO_OWN_CURE) && healer && healer->s.number == ent->client->poisoner)
+	{
+		return qfalse;
+	}
+
+	return qtrue;
+}
+
+/**
+ * @brief  poison damage over time. Default 1 HP every 50 ms per injection,
+ * with g_poison bit 4 10 HP every 1.5 s per injection. Kills are credited to the poisoner.
+ * @param[in,out] ent
+ */
+void G_PoisonThink(gentity_t *ent)
+{
+	gclient_t *client = ent->client;
+	gentity_t *attacker;
+	int       damage, interval;
+
+	if (!(client->ps.eFlags & EF_POISONED))
+	{
+		return;
+	}
+
+	if (ent->health <= 0 || client->sess.sessionTeam == TEAM_SPECTATOR || (client->ps.pm_flags & PMF_LIMBO))
+	{
+		G_CurePoison(ent);
+		return;
+	}
+
+	if (level.time < client->poisonNextTick)
+	{
+		return;
+	}
+
+	if (g_poison.integer & POISON_SLOW)
+	{
+		damage   = 10;
+		interval = 1500;
+	}
+	else
+	{
+		damage   = 1;
+		interval = 50;
+	}
+
+	damage                *= MAX(client->poisonStack, 1);
+	client->poisonNextTick = level.time + interval;
+
+	// a poisoner who has left the server gets no credit
+	attacker = NULL;
+	if (client->poisoner >= 0 && client->poisoner < MAX_CLIENTS)
+	{
+		gentity_t *poisoner = &g_entities[client->poisoner];
+
+		if (poisoner->inuse && poisoner->client && poisoner->client->pers.connected == CON_CONNECTED)
+		{
+			attacker = poisoner;
+		}
+		else
+		{
+			client->poisoner = -1;
+		}
+	}
+
+	G_Damage(ent, attacker, attacker, NULL, NULL, damage, DAMAGE_NO_KNOCKBACK, MOD_POISON);
+}
+
+/**
  * @brief Actions that happen once a second
  * @param[in,out] ent  Entity
  * @param         msec Scheduler time
@@ -1441,15 +1608,14 @@ void ClientThink_real(gentity_t *ent)
 	VectorCopy(ent->r.mins, pm.mins);
 	VectorCopy(ent->r.maxs, pm.maxs);
 
-	pm.gametype           = g_gametype.integer;
-	pm.ltChargeTime       = level.fieldopsChargeTime[client->sess.sessionTeam - 1];
-	pm.soldierChargeTime  = level.soldierChargeTime[client->sess.sessionTeam - 1];
-	pm.engineerChargeTime = level.engineerChargeTime[client->sess.sessionTeam - 1];
-	pm.medicChargeTime    = level.medicChargeTime[client->sess.sessionTeam - 1];
+	pm.gametype            = g_gametype.integer;
+	pm.ltChargeTime        = level.fieldopsChargeTime[client->sess.sessionTeam - 1];
+	pm.soldierChargeTime   = level.soldierChargeTime[client->sess.sessionTeam - 1];
+	pm.engineerChargeTime  = level.engineerChargeTime[client->sess.sessionTeam - 1];
+	pm.medicChargeTime     = level.medicChargeTime[client->sess.sessionTeam - 1];
+	pm.covertopsChargeTime = level.covertopsChargeTime[client->sess.sessionTeam - 1];
 
 	pm.skill = client->sess.skill;
-
-	pm.covertopsChargeTime = level.covertopsChargeTime[client->sess.sessionTeam - 1];
 
 	if (client->ps.pm_type != PM_DEAD && level.timeCurrent - client->pers.lastBattleSenseBonusTime > 45000)
 	{
@@ -1672,6 +1838,7 @@ void ClientThink_real(gentity_t *ent)
 	if (level.match_pause == PAUSE_NONE)
 	{
 		ClientTimerActions(ent, msec);
+		G_PoisonThink(ent); // Dirty Double Jump
 	}
 }
 
@@ -2206,6 +2373,14 @@ void ClientEndFrame(gentity_t *ent)
 
 	if ((ent->client->sess.sessionTeam == TEAM_SPECTATOR) || (ent->client->ps.pm_flags & PMF_LIMBO))
 	{
+		// Limbo players skip the pause compensation below; shift their charge
+		// timestamps as well so paused frames never count as recharge.
+		if (level.match_pause != PAUSE_NONE && (ent->client->ps.pm_flags & PMF_LIMBO))
+		{
+			ent->client->ps.classWeaponTime += level.frameTime;
+			ent->client->deathTime          += level.frameTime;
+		}
+
 		SpectatorClientEndFrame(ent);
 		return;
 	}
@@ -2288,6 +2463,13 @@ void ClientEndFrame(gentity_t *ent)
 		ent->lastHintCheckTime  += level.frameTime;
 		ent->pain_debounce_time += level.frameTime;
 		ent->s.onFireEnd        += level.frameTime;
+
+		// dead players anchor the sticky charge respawn reconstruction on
+		// deathTime, keep it in sync so paused frames never count as recharge
+		if (ent->client->ps.stats[STAT_HEALTH] <= 0)
+		{
+			ent->client->deathTime += level.frameTime;
+		}
 	}
 
 	// save network bandwidth

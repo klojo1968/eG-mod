@@ -127,7 +127,8 @@ void TossWeapons(gentity_t *self)
 	    case WP_NONE:
 	    case WP_KNIFE:
 	    case WP_DYNAMITE:
-	    case WP_ARTY:
+		case WP_BOMB:
+		case WP_ARTY:
 	    case WP_MEDIC_SYRINGE:
 	    case WP_SMOKETRAIL:
 	    case WP_MAPMORTAR:
@@ -366,8 +367,9 @@ qboolean G_CheckComplaint(gentity_t *self, gentity_t *inflictor, gentity_t *atta
 			{
 				if (g_complaintlimit.integer)
 				{
-					if (!(meansOfDeath == MOD_LANDMINE && (g_disableComplaints.integer & TKFL_MINES)) &&
+					if (!(IS_LANDMINE_MOD(meansOfDeath) && (g_disableComplaints.integer & TKFL_MINES)) &&
 					    !((meansOfDeath == MOD_ARTY || meansOfDeath == MOD_AIRSTRIKE) && (g_disableComplaints.integer & TKFL_AIRSTRIKE)) &&
+					    !(meansOfDeath == MOD_TRIPMINE && (g_disableComplaints.integer & TKFL_TRIPMINES)) && 
 					    !((meansOfDeath == MOD_MORTAR || meansOfDeath == MOD_MORTAR2) && (g_disableComplaints.integer & TKFL_MORTAR)))
 					{
 						trap_SendServerCommand(self - g_entities, va("complaint %i", attacker->s.number));
@@ -469,6 +471,9 @@ void player_die(gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int 
 		return;
 	}
 
+	// the poison dies with the player (a corpse doesn't keep ticking)
+	G_CurePoison(self);
+
 	switch (meansOfDeath)
 	{
 	case MOD_FALLING:
@@ -545,7 +550,7 @@ void player_die(gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int 
 	}
 
 	// if we got killed by a landmine, update our map
-	if (meansOfDeath == MOD_LANDMINE)
+	if (IS_LANDMINE_MOD(meansOfDeath))
 	{
 		// if it's an enemy mine, update both teamlists
 		mapEntityData_t *mEnt;
@@ -1549,7 +1554,7 @@ void G_DamageExt(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec
 		}
 		break;
 	case ET_MISSILE:
-		if (targ->methodOfDeath == MOD_LANDMINE)
+		if (IS_LANDMINE_MOD(targ->methodOfDeath))
 		{
 			if (targ->s.modelindex2)
 			{
@@ -1619,6 +1624,15 @@ void G_DamageExt(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec
 		VectorNormalize(dir);
 	}
 
+	// g_friendlyFire 512: the team's landmines and tripmines never hurt teammates (or the owner),
+	// even with friendly fire on. A mine keeps its planting team in s.teamNum (low bits) even if the owner left or switched.
+	if ((g_friendlyFire.integer & FF_NO_TEAM_MINE_DAMAGE) && targ->client && inflictor &&
+	    (mod == MOD_LANDMINE || mod == MOD_TRIPMINE) &&
+	    (team_t)(inflictor->s.teamNum & 3) == targ->client->sess.sessionTeam)
+	{
+		return;
+	}
+
 	// check for completely getting out of the damage
 	if (!(dflags & DAMAGE_NO_PROTECTION))
 	{
@@ -1630,16 +1644,22 @@ void G_DamageExt(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec
 			{
 				return;
 			}
-			else if (!g_friendlyFire.integer)
+			else if (!G_FriendlyFireOn())
 			{
-				return;
+				// g_friendlyFire 64: landmines and tripmines hurt teammates anyway;
+				// g_poison 16: poison from a teammate's syringe works without friendly fire
+				if (!((g_friendlyFire.integer & FF_TEAM_LANDMINE_DAMAGE) && (mod == MOD_LANDMINE || mod == MOD_TRIPMINE)) &&
+				    !((g_poison.integer & POISON_TEAM) && mod == MOD_POISON))
+				{
+					return;
+				}
 			}
 		}
 	}
 
 	// add to the attacker's hit counter (but only if target is a client)
 	if (attacker && attacker->client && targ->client  && targ != attacker &&
-	    mod != MOD_SWITCHTEAM && mod != MOD_SWAP_PLACES && mod != MOD_SUICIDE)
+	    mod != MOD_SWITCHTEAM && mod != MOD_SWAP_PLACES && mod != MOD_SUICIDE && mod != MOD_POISON) // poison ticks play no hitsounds
 	{
 		if (onSameTeam || (targ->client->ps.powerups[PW_OPS_DISGUISED] && (g_friendlyFire.integer & 1)))
 		{
@@ -1661,7 +1681,7 @@ void G_DamageExt(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec
 	}
 
 	if ((targ->flags & FL_NO_KNOCKBACK) || (dflags & DAMAGE_NO_KNOCKBACK) ||
-	    (targ->client && g_friendlyFire.integer && (onSameTeam || (attacker->client && targ->client->sess.sessionTeam == G_GetTeamFromEntity(inflictor)))))
+	    (targ->client && G_FriendlyFireOn() && (onSameTeam || (attacker->client && targ->client->sess.sessionTeam == G_GetTeamFromEntity(inflictor)))))
 	{
 		knockback = 0;
 	}
@@ -1877,7 +1897,9 @@ void G_DamageExt(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec
 		{
 			targ->client->ps.persistant[PERS_ATTACKER] = attacker->s.number;
 
-			if (attacker->client)
+			// only record damage dealt to a live target, so corpse/gib hits
+			// can't feed kill assists or team bleed complaints of a later death
+			if (attacker->client && take > 0 && wasAlive)
 			{
 				targ->client->dmgReceivedSts[attacker->s.number].damageReceived += take;
 				targ->client->dmgReceivedSts[attacker->s.number].mods            = mod;
@@ -1888,8 +1910,12 @@ void G_DamageExt(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec
 		{
 			targ->client->ps.persistant[PERS_ATTACKER] = ENTITYNUM_WORLD;
 		}
+		// poison ticks (up to 20 a second) give no screen blood and no view kick
+		if (mod != MOD_POISON)
+		{
 		targ->client->damage_blood     += take;
 		targ->client->damage_knockback += knockback;
+		}
 
 		if (dir)
 		{
@@ -2361,7 +2387,10 @@ qboolean G_RadiusDamage(vec3_t origin, gentity_t *inflictor, gentity_t *attacker
 	{
 		flags |= DAMAGE_HALF_KNOCKBACK;
 	}
-
+	else if (mod == MOD_POISON_MINE)
+		 {
+		flags |= DAMAGE_NO_KNOCKBACK;
+		}
 	if (radius < 1)
 	{
 		radius = 1;
@@ -2530,6 +2559,10 @@ qboolean etpro_RadiusDamage(vec3_t origin, gentity_t *inflictor, gentity_t *atta
 	{
 		flags |= DAMAGE_HALF_KNOCKBACK;
 	}
+	else if (mod == MOD_POISON_MINE)
+		 {
+		flags |= DAMAGE_NO_KNOCKBACK;
+		}
 
 	if (radius < 1)
 	{

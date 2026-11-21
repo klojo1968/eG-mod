@@ -48,9 +48,9 @@ weapon_t weapBanksMultiPlayer[MAX_WEAP_BANKS_MP][MAX_WEAPS_IN_BANK_MP] =
 	{ WP_LUGER,            WP_COLT,              WP_AKIMBO_COLT,  WP_AKIMBO_LUGER, WP_SILENCER,    WP_SILENCED_COLT, WP_AKIMBO_SILENCEDCOLT, WP_AKIMBO_SILENCEDLUGER, 0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
 	{ WP_MP40,             WP_THOMPSON,          WP_STEN,         WP_GARAND,       WP_PANZERFAUST, WP_FLAMETHROWER,  WP_KAR98,               WP_CARBINE,              WP_FG42, WP_K43, WP_MOBILE_MG42, WP_MOBILE_BROWNING, WP_MORTAR, WP_MORTAR2, WP_BAZOOKA, WP_GPG40, WP_M7, WP_MP34 },
 	{ WP_GRENADE_LAUNCHER, WP_GRENADE_PINEAPPLE, 0,               0,               0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
-	{ WP_MEDIC_SYRINGE,    WP_PLIERS,            WP_SMOKE_MARKER, WP_SMOKE_BOMB,   0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
-	{ WP_DYNAMITE,         WP_MEDKIT,            WP_AMMO,         WP_SATCHEL,      WP_SATCHEL_DET, 0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
-	{ WP_LANDMINE,         WP_MEDIC_ADRENALINE,  0,               0,               0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
+	{ WP_MEDIC_SYRINGE,    WP_POISON_SYRINGE,    WP_PLIERS,       WP_SMOKE_MARKER, WP_SMOKE_BOMB,  0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
+	{ WP_DYNAMITE,         WP_MEDKIT,            WP_AMMO,         WP_SATCHEL,      WP_SATCHEL_DET, WP_BOMB,          0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
+	{ WP_LANDMINE,         WP_MEDIC_ADRENALINE,  WP_POISON_MINE,  0,               0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
 	{ WP_BINOCULARS,       0,                    0,               0,               0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
 	{ 0,                   0,                    0,               0,               0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
 };
@@ -463,7 +463,7 @@ void CG_PyroSmokeTrail(centity_t *ent)
 	int           t;
 	float         rnd;
 
-	if (ent->currentState.weapon == WP_LANDMINE)
+	if (IS_LANDMINE_WEAPON(ent->currentState.weapon))
 	{
 		if (ent->currentState.effect1Time != 2)
 		{
@@ -526,7 +526,7 @@ void CG_PyroSmokeTrail(centity_t *ent)
 		VectorAdd(lastPos, dir, origin); // store in origin
 
 		CG_GetWindVector(dir);
-		if (ent->currentState.weapon == WP_LANDMINE)
+		if (IS_LANDMINE_WEAPON(ent->currentState.weapon))
 		{
 			VectorScale(dir, 45, dir);
 		}
@@ -1097,6 +1097,8 @@ static int CG_DefaultAnimFrameForWeapon(int weapon)
 		break;
 	case WP_SATCHEL:
 	case WP_LANDMINE:
+	case WP_POISON_MINE:
+	case WP_TRIPMINE:
 		frame = 8;
 		break;
 	case WP_SATCHEL_DET:
@@ -1544,6 +1546,8 @@ void CG_AddPlayerWeapon(refEntity_t *parent, playerState_t *ps, centity_t *cent)
 			}
 			break;
 		case WP_LANDMINE:
+		case WP_POISON_MINE:
+		case WP_TRIPMINE:
 			// dont show drop after attack
 			if ((cg.predictedPlayerState.weaponstate == WEAPON_DROPPING && cent->firedTime > 0))
 			{
@@ -1562,6 +1566,15 @@ void CG_AddPlayerWeapon(refEntity_t *parent, playerState_t *ps, centity_t *cent)
 			if (
 				(cg_weapAnims.integer & WEAPANIM_FIRING)
 				&& ((cg.predictedPlayerState.weaponstate == WEAPON_DROPPING && cg.weaponSelectDuringFiring > 0) || (cg.predictedPlayerState.weaponstate == WEAPON_FIRING && cg.predictedPlayerEntity.pe.weap.frame > 18)) && cg.weaponSelect != WP_MEDIC_SYRINGE
+				)
+			{
+				return;
+			}
+			break;
+		case WP_POISON_SYRINGE: // same as the medic syringe
+			if (
+				(cg_weapAnims.integer & WEAPANIM_FIRING)
+				&& ((cg.predictedPlayerState.weaponstate == WEAPON_DROPPING && cg.weaponSelectDuringFiring > 0) || (cg.predictedPlayerState.weaponstate == WEAPON_FIRING && cg.predictedPlayerEntity.pe.weap.frame > 18)) && cg.weaponSelect != WP_POISON_SYRINGE
 				)
 			{
 				return;
@@ -1636,6 +1649,8 @@ void CG_AddPlayerWeapon(refEntity_t *parent, playerState_t *ps, centity_t *cent)
 			}
 			break;
 		case WP_LANDMINE:
+		case WP_POISON_MINE:
+		case WP_TRIPMINE:
 			if ((cg.time > (cent->firedTime + 80)) && (cg.time < (cent->firedTime + 700)))
 			{
 				return;
@@ -1791,6 +1806,8 @@ void CG_AddPlayerWeapon(refEntity_t *parent, playerState_t *ps, centity_t *cent)
 		{
 		// fixup 3P landmine model (rotate, translate, rescale)
 		case WP_LANDMINE:
+		case WP_TRIPMINE:
+		case WP_POISON_MINE:	
 		{
 			// rotate
 			AxisToAngles(gun.axis, angles);
@@ -2250,23 +2267,78 @@ void CG_AddPlayerWeapon(refEntity_t *parent, playerState_t *ps, centity_t *cent)
 		{
 			if ((cg.snap->ps.ammo[GetWeaponTableData(WP_GPG40)->ammoIndex] || cg.snap->ps.ammo[GetWeaponTableData(WP_M7)->ammoIndex] || cg.snap->ps.ammoclip[GetWeaponTableData(WP_GPG40)->ammoIndex] || cg.snap->ps.ammoclip[GetWeaponTableData(WP_M7)->ammoIndex]))
 			{
-				int anim = cg.snap->ps.weapAnim & ~ANIM_TOGGLEBIT;
+				// Match the hands' predicted state when available. The local world
+				// model also reaches this branch with no ps, so keep its snapshot fallback.
+				const playerState_t *weaponPs = ps ? ps : &cg.snap->ps;
+				int                 anim      = weaponPs->weapAnim & ~ANIM_TOGGLEBIT;
 
-				if (anim == WEAP_ALTSWITCHFROM || anim == WEAP_ALTSWITCHTO || anim == WEAP_IDLE1 || anim == WEAP_IDLE2)
+				// Only grenade-equipped rifles carry a grenade during idle, raise or drop.
+				if (anim == WEAP_ALTSWITCHFROM || anim == WEAP_ALTSWITCHTO ||
+				    ((GetWeaponTableData(weaponNum)->type & WEAPON_TYPE_RIFLENADE) &&
+				     (anim == WEAP_IDLE1 || anim == WEAP_IDLE2 || anim == WEAP_RAISE || anim == WEAP_DROP)))
 				{
-					// prevent the flying nade effect (best visible with M7 when swapping while raising)
-					if (weaponNum == cg.snap->ps.nextWeapon && !(cg.snap->ps.pm_flags & PMF_RESPAWNED))
+					// Keep the grenade on the outgoing rifle when nextWeapon changes.
+					// The grenade tag still needs the switch guard during attach/detach.
+					if ((weaponNum == weaponPs->nextWeapon || (anim != WEAP_ALTSWITCHFROM && anim != WEAP_ALTSWITCHTO)) &&
+					    !(weaponPs->pm_flags & PMF_RESPAWNED))
 					{
 						barrel.hModel = weapon->modModels[0];
 
 						if (barrel.hModel)
 						{
-							// only render rifle grenade when NOT firing -
-							// otherwise 'tag_scope' lerps from rifle towards
-							// the player in 1st person view #2602
-							if (!(ps && ps->weaponstate == WEAPON_DROPPING))
+							// A loaded grenade stays on the lowering rifle; hide it after firing.
+							if (!(ps && (ps->weaponstate == WEAPON_DROPPING || ps->weaponstate == WEAPON_DROPPING_TORELOAD) &&
+							      !ps->ammoclip[GetWeaponTableData(weaponNum)->clipIndex]))
 							{
-								CG_PositionEntityOnTag(&barrel, parent, "tag_scope", 0, NULL);
+								// Use the grenade tag only while the hands attach or detach it.
+								if (anim == WEAP_ALTSWITCHFROM || anim == WEAP_ALTSWITCHTO)
+								{
+									if ((weaponNum == WP_CARBINE || weaponNum == WP_M7) && anim == WEAP_ALTSWITCHTO)
+									{
+										const animation_t *detachAnim   = &weapon->weapAnimations[WEAP_ALTSWITCHTO];
+										refEntity_t       grenadeParent = *parent;
+										int               endFrame      = detachAnim->firstFrame + detachAnim->numFrames;
+
+										// The normal rifle idle hides this tag far below the muzzle.
+										// Replace carried-over frames with loaded idle for the grenade
+										// so detachment starts at the muzzle and follows the hand.
+										if (grenadeParent.oldframe < detachAnim->firstFrame || grenadeParent.oldframe >= endFrame)
+										{
+											grenadeParent.oldframe = weapon->weapAnimations[WEAP_IDLE2].firstFrame;
+										}
+										if (grenadeParent.frame < detachAnim->firstFrame || grenadeParent.frame >= endFrame)
+										{
+											grenadeParent.frame = weapon->weapAnimations[WEAP_IDLE2].firstFrame;
+										}
+
+										CG_PositionEntityOnTag(&barrel, &grenadeParent, "tag_scope", 0, NULL);
+									}
+									else
+									{
+										CG_PositionEntityOnTag(&barrel, parent, "tag_scope", 0, NULL);
+									}
+								}
+								else
+								{
+									vec3_t offset;
+
+									// The gun's muzzle tag follows the rifle body, while the hands'
+									// barrel tag moves independently during raise. Muzzle-space
+									// offsets position each grenade on its rifle's muzzle.
+									if (weaponNum == WP_GPG40)
+									{
+										VectorSet(offset, -0.63f, 0.06f, -0.74f);
+									}
+									else
+									{
+										VectorSet(offset, 14.06f, 0.31f, 0.91f);
+									}
+
+									CG_PositionEntityOnTag(&barrel, &gun, "tag_flash", 0, NULL);
+									VectorMA(barrel.origin, offset[0], barrel.axis[0], barrel.origin);
+									VectorMA(barrel.origin, offset[1], barrel.axis[1], barrel.origin);
+									VectorMA(barrel.origin, offset[2], barrel.axis[2], barrel.origin);
+								}
 								CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups, ps, cent);
 							}
 						}
@@ -4375,21 +4447,25 @@ void CG_WeaponBank_f(void)
 		newWeapon = cg.lastWeapSelInBank[bank];
 		CG_WeaponIndex(newWeapon, &bank, &cycle);
 
+		// getNextWeapInBank() already steps one slot forward, so stepping here
+		// as well skipped every other slot (bank 7 jumped over the tripmine). Stay on the current
+		// slot when re-pressing the same bank.		
 		if (bank != curbank)
 		{
 			cycle -= 1;
 		}
-		else
-		{
-			if (cycle + 1 >= MAX_WEAPS_IN_BANK_MP)
-			{
-				cycle = 0;
-			}
-			else
-			{
-				cycle += 1;
-			}
-		}
+		//  need to be checked if this is true
+//		else
+//		{
+//			if (cycle + 1 >= MAX_WEAPS_IN_BANK_MP)
+//			{
+//				cycle = 0;
+//			}
+//			else
+//			{
+//				cycle += 1;
+//			}
+//		}
 	}
 
 	for (i = 0; i < MAX_WEAPS_IN_BANK_MP; i++)
@@ -4465,7 +4541,7 @@ void CG_OutOfAmmoChange(qboolean allowForceSwitch)
 
 	if (allowForceSwitch)
 	{
-		if ((cg.weaponSelect == WP_LANDMINE || cg.weaponSelect == WP_DYNAMITE) && CG_WeaponSelectable(WP_PLIERS, qfalse))
+		if ((IS_LANDMINE_WEAPON(cg.weaponSelect) || cg.weaponSelect == WP_TRIPMINE || cg.weaponSelect == WP_DYNAMITE) && CG_WeaponSelectable(WP_PLIERS, qfalse))
 		{
 			CG_FinishWeaponChange(cg.predictedPlayerState.weapon, WP_PLIERS);
 			return;

@@ -758,6 +758,7 @@ typedef enum
 //#endif
 #define EF_AAGUN_ACTIVE     0x00400000                         ///< player is manning an AA gun
 #define EF_SPARE0           0x00800000                         ///< freed
+#define EF_POISONED         EF_SPARE0                          ///< player is poisoned ( bit 23 still fits the 24 networked eFlags bits)
 
 // !! NOTE: only place flags that don't need to go to the client beyond 0x00800000
 #define EF_SPARE1           0x01000000                         ///< freed
@@ -910,7 +911,12 @@ typedef enum
 	WP_MP34,                   ///< 54	Axis Sten alternative
 	WP_AIRSTRIKE,              ///< 55
 
-	WP_NUM_WEAPONS             ///< 56
+	// Nitmod weapons
+	WP_TRIPMINE,               ///< 56 Engineer wall-mounted laser mine
+	WP_POISON_SYRINGE,         ///< 57 Poison syringe, any class with Light Weapons level 4 (g_poison)
+	WP_BOMB,                   ///< 58 thrown, cookable bomb
+	WP_POISON_MINE,            ///< 59	Engineer only - landmine that releases a poison gas cloud when triggered
+	WP_NUM_WEAPONS             ///< 60
 	///< NOTE: this cannot be larger than 64 for AI/player weapons!
 } weapon_t;
 
@@ -1140,6 +1146,10 @@ typedef enum
 	MOD_BACKSTAB,
 	MOD_MP34, // Allied Sten alternative
 
+	MOD_TRIPMINE, // Engineer tripmine (Dirty Double Jump)
+	MOD_POISON, // lasting poison (EF_POISONED) from the poison syringe 
+	MOD_BOMB, // thrown bomb
+	MOD_POISON_MINE, // Engineer poison mine gas
 	MOD_NUM_MODS
 
 } meansOfDeath_t;
@@ -1352,7 +1362,20 @@ typedef struct modtable_s
 extern weaponTable_t *GetWeaponTableData(int weaponIndex);
 
 #define IS_VALID_WEAPON(w) ((w) > WP_NONE && (w) < WP_NUM_WEAPONS)
+
+// tripmine geometry shared by game and cgame 
+#define TRIPMINE_WALL_OFFSET  4       ///< mine origin distance from the wall (keeps its box out of the wall)
+#define TRIPMINE_BEAM_LENGTH  2048    ///< length of the trigger line
+
+/// g_misc bit 16 (NitMod): enemy mines seen with Battle Sense trap awareness are drawn
+/// transparent red/blue instead of white. The server cvar is in serverinfo so cgame can read it.
+#define G_MISC_COLOURED_MINES 16
 #define IS_VALID_MOD(mod) ((mod) >= MOD_UNKNOWN && (mod) < MOD_NUM_MODS)
+
+/// the poison mine is a landmine variant: it is thrown, armed, counted and disarmed like a landmine
+#define IS_LANDMINE_WEAPON(weapon) ((weapon) == WP_LANDMINE || (weapon) == WP_POISON_MINE)
+#define IS_LANDMINE_MOD(mod)       ((mod) == MOD_LANDMINE || (mod) == MOD_POISON_MINE)
+
 #define IS_VALID_AMMUNITION(a) ((a) >= MISSILE_NONE && (a) < MOD_NUM_MISIILES)
 
 // entityState_t->event values
@@ -1859,6 +1882,7 @@ typedef enum extWeaponStats_e
 	WS_K43,            ///< 25
 	WS_MP34,           ///< 26
 	WS_SYRINGE,        ///< 27
+	WS_TRIPMINE,       ///< 28   -- Engineer tripmine 
 
 	WS_MAX
 } extWeaponStats_t;
@@ -1950,6 +1974,7 @@ typedef enum item_s
 	ITEM_WEAPON_SMOKETRAIL,
 	ITEM_WEAPON_MEDIC_HEAL,
 	ITEM_WEAPON_DYNAMITE,
+	ITEM_WEAPON_BOMB,	
 	ITEM_WEAPON_FLAMETHROWER,
 	ITEM_WEAPON_MAPMORTAR,
 	ITEM_WEAPON_PLIERS,
@@ -2002,6 +2027,9 @@ typedef enum item_s
 	ITEM_AMMO_30CAL_LARGE,
 	ITEM_RED_FLAG,
 	ITEM_BLUE_FLAG,
+	ITEM_WEAPON_POISON_MINE,
+	ITEM_WEAPON_TRIPMINE,          
+	ITEM_WEAPON_POISON_SYRINGE,    
 	ITEM_MAX_ITEMS,
 
 } item_t;
@@ -2813,7 +2841,7 @@ int trap_PC_SourceFileAndLine(int handle, char *filename, int *line);
 int trap_PC_UnReadToken(int handle);
 
 void PC_SourceError(int handle, const char *format, ...);
-void PC_SourceWarning(int handle, const char *format, ...);
+//void PC_SourceWarning(int handle, const char *format, ...); // Unused
 
 #ifdef GAMEDLL
 const char *PC_String_Parse(int handle);
@@ -3360,7 +3388,5 @@ typedef struct client_vote_s
 #define CONSTRUCTIBLE_DURATION_HASH         307340
 #define CREATE_HASH                         76308
 #define DELETE_HASH                         76202
-
-void BG_CustomizeTables();
 
 #endif // #ifndef INCLUDE_BG_PUBLIC_H

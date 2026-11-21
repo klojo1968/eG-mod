@@ -1354,6 +1354,12 @@ void SetWolfSpawnWeapons(gclient_t *client)
 		if (BG_IsSkillAvailable(client->sess.skill, classInfo->classMiscWeapons[i].skill, classInfo->classMiscWeapons[i].minSkillLevel)
 		    && client->sess.skill[classInfo->classMiscWeapons[i].skill] >= classInfo->classMiscWeapons[i].minSkillLevel)
 		{
+			// tripmines are optional 
+			if (weaponClassInfo->weapon == WP_TRIPMINE && !G_TripminesOn())
+			{
+				continue;
+			}
+
 			// special check for riflenade, we need the launcher to use it
 			if (GetWeaponTableData(weaponClassInfo->weapon)->type & WEAPON_TYPE_RIFLENADE)
 			{
@@ -1373,6 +1379,13 @@ void SetWolfSpawnWeapons(gclient_t *client)
 			// add each
 			AddWeaponToPlayer(client, weaponClassInfo->weapon, weaponClassInfo->startingAmmo, weaponClassInfo->startingClip, qfalse);
 		}
+	}
+
+	// poison syringe (g_poison, g_poisonClasses, g_poisonLevel; NitMod rule: Light Weapons 4).
+	// NitMod gives 4 injections (3 spare + 1 loaded), up to 8 with ammo packs.
+	if (G_PoisonSyringeAllowed(client))
+	{
+		AddWeaponToPlayer(client, WP_POISON_SYRINGE, 3, 1, qfalse);
 	}
 }
 
@@ -1785,7 +1798,7 @@ void ClientUserinfoChanged(int clientNum)
 	char       userinfo[MAX_INFO_STRING];
 	char       configStr[MAX_INFO_STRING] = { 0 };
 	char       skillStr[16]               = "";
-	char       medalStr[16]               = "";
+	char       medalStr[35]               = ""; // 4 digits * 7 skills + 6 separators + 1 string ending
 
 	client->ps.clientNum = clientNum;
 
@@ -2052,10 +2065,9 @@ void ClientUserinfoChanged(int clientNum)
 	for (i = 0; i < SK_NUM_SKILLS; i++)
 	{
 		Q_strcat(skillStr, sizeof(skillStr), va("%i", client->sess.skill[i]));
-		Q_strcat(medalStr, sizeof(medalStr), va("%i", client->sess.medals[i]));
-		// FIXME: Gordon: wont this break if medals > 9 arnout?
-		// Medal count is tied to skill count :()
-		// er, it's based on >> skill per map, so for a huuuuuuge campaign it could break...
+
+		// we cap the maximum of medal to 4 digits ... hoping no one will ever won so much
+		Q_strcat(medalStr, sizeof(medalStr), va("%i ", client->sess.medals[i] >= 9999 ? 9999 : client->sess.medals[i]));
 	}
 
 	client->ps.stats[STAT_MAX_HEALTH] = client->pers.maxHealth;
@@ -3331,6 +3343,9 @@ void ClientSpawn(gentity_t *ent, qboolean revived, qboolean teamChange, qboolean
 		G_UpdateCharacter(client);
 	}
 
+	// spawning or being revived always starts unpoisoned (and with no stale poisoner)
+	G_CurePoison(ent);
+
 	SetWolfSpawnWeapons(client);
 
 	// increases stats[STAT_MAX_HEALTH] based on # of medics in game
@@ -3454,6 +3469,7 @@ void ClientSpawn(gentity_t *ent, qboolean revived, qboolean teamChange, qboolean
 	// initialize animations and other things
 	client->ps.commandTime           = level.time - 100;
 	ent->client->pers.cmd.serverTime = level.time;
+	ent->client->realCmdServerTime   = level.time;
 
 	ClientThink(ent - g_entities);
 
@@ -3604,6 +3620,7 @@ void ClientDisconnect(int clientNum)
 	{
 		G_ExplodeMines(ent);
 	}
+	G_RemoveTripmines(ent);
 	G_FadeItems(ent, MOD_SATCHEL);
 
 	// remove ourself from teamlists

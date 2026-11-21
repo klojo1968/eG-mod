@@ -49,8 +49,6 @@
 #include "cg_cvars.h"
 #include "../ui/ui_shared.h"
 
-
-#define STATS_FADE_TIME     200
 #define FADE_TIME           200
 #define DAMAGE_DEFLECT_TIME 100
 #define DAMAGE_RETURN_TIME  400
@@ -1501,6 +1499,7 @@ typedef struct
 	char maxRockets[MAX_QPATH];
 	char maxRiflegrenades[MAX_QPATH];
 	char maxLandmines[MAX_QPATH];
+	char maxTripmines[MAX_QPATH];
 	int maxPlayers;
 
 	int binocZoomTime;
@@ -1665,6 +1664,7 @@ typedef struct
 
 	qhandle_t medicReviveShader;
 	qhandle_t medicReviveShader2;
+	qhandle_t poisonedShader;           ///< sprite over poisoned players
 	qhandle_t disguisedShader;
 	qhandle_t voiceChatShader;
 	qhandle_t voiceChatOrangeShader;
@@ -2538,6 +2538,7 @@ typedef struct cgs_s
 	char mapname[MAX_QPATH];
 	char rawmapname[MAX_QPATH];
 	float weaponRestrictions;
+	int serverMiscFlags;                    ///< server g_misc (bit 16 coloured enemy mines)
 
 	int voteTime;
 	int voteYes;
@@ -2804,9 +2805,6 @@ typedef struct cgs_s
 
 	int scoresCount;
 	char scores[MAX_SCORES_CMDS][MAX_STRING_CHARS];
-
-	int dynamiteCounter;
-
 	int doubleJump;
 	float doubleJumpHeight;
 } cgs_t;
@@ -2846,6 +2844,12 @@ enum
 	CROSSHAIR_DYNAMIC_COLOR_ALT = BIT(3),
 	CROSSHAIR_HIDE_MAIN         = BIT(4),
 	CROSSHAIR_HIDE_ALT          = BIT(5),
+};
+
+// stamina bar flags
+enum
+{
+	STAMINABAR_EMPTYWARN = BIT(0),
 };
 
 // crosshair bar flags
@@ -3358,6 +3362,9 @@ void CG_ShowHelp_On(int *status);
 qboolean CG_ViewingDraw(void);
 #endif
 void CG_DrawDemoOverlay(void);
+qboolean CG_DemoBarAvailable(void);
+qboolean CG_DemoBarOpen(void);
+void CG_DemoBarMouseMoved(void);
 
 // cg_scoreboard.c
 qboolean CG_DrawScoreboard(void);
@@ -4295,7 +4302,7 @@ typedef struct hudStructure_s
 
 #define MAXHUDS 32
 #define MAXSTYLES 24
-#define CURRENT_HUD_JSON_VERSION 8
+#define CURRENT_HUD_JSON_VERSION 9
 #define DEFAULTHUD "ETmain"
 
 typedef struct
@@ -4462,6 +4469,7 @@ void CG_DrawHudEditor(void);
 void CG_HudEditor_KeyHandling(int key, qboolean down);
 void CG_HudEditorReset();
 void CG_HudEditorMouseMove_Handling(int x, int y);
+qboolean CG_HudEditor_TryExit(void);
 
 typedef struct
 {

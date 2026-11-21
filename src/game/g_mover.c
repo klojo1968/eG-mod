@@ -585,7 +585,7 @@ qboolean G_MoverPush(gentity_t *pusher, vec3_t move, vec3_t amove, gentity_t **o
 
 		if (check->s.eType == ET_MISSILE && check->s.groundEntityNum != pusher->s.number)
 		{
-			if (check->methodOfDeath == MOD_LANDMINE)
+			if (IS_LANDMINE_MOD(check->methodOfDeath))
 			{
 				if (check->s.effect1Time == 1)
 				{
@@ -5118,7 +5118,7 @@ void func_constructible_explode(gentity_t *self, gentity_t *inflictor, gentity_t
 				else
 				{
 					// remove the landmine from both teamlists
-					if (check->s.eType == ET_MISSILE && check->methodOfDeath == MOD_LANDMINE)
+					if (check->s.eType == ET_MISSILE && IS_LANDMINE_MOD(check->methodOfDeath))
 					{
 						mapEntityData_t *mEnt;
 
