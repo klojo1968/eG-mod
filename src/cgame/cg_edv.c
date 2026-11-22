@@ -223,7 +223,7 @@ void CG_EDV_WeaponCam(centity_t *cent, refEntity_t *ent)
 			trap_Cvar_Set("timescale", demo_autotimescale.string);
 		}
 	}
-	else if ((demo_weaponcam.integer & DWC_SMOKE) && (cent->currentState.weapon == WP_SMOKE_MARKER || cent->currentState.weapon == WP_SMOKE_BOMB))
+	else if ((demo_weaponcam.integer & DWC_SMOKE) && (cent->currentState.weapon == WP_SMOKE_MARKER || cent->currentState.weapon == WP_SMOKE_BOMB || cent->currentState.weapon == WP_POISON_BOMB))
 	{
 		cgs.demoCamera.renderingWeaponCam = qtrue;
 		// point camera in direction of travel (saved from cg_ents)

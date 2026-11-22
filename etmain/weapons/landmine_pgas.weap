@@ -2,24 +2,54 @@ weaponDef
 {
 	client {
 		weaponConfig		"models/multiplayer/landmine/weapon.cfg"
-		handsModel		"models/multiplayer/landmine/v_landmine_hand.md3"
-		
+		handsModel			"models/multiplayer/landmine/v_landmine_hand.md3"
+
+		// looping sound of the gas cloud (CG_RenderSmokeGrenadeSmoke uses the overheat sound)
 		overheatSound		"sound/weapons/grenade/gren_smoke.wav"
 
+		// Nitmod 2.3.5 has no poison mine specific hud icon, the poison mine uses the landmine one.
+		// the selected icon is a green tinted version of the landmine one (shader in scripts/grinch.shader)
+		weaponIcon			"icons/iconw_landmine"
+		weaponIconScale		1
 		weaponSelectedIcon	"icons/iconw_plandmine_1_select"
-		
+
 		missileModel		"models/multiplayer/landmine/plandmine.md3"
-		missileTrailFunc	"PyroSmokeTrail"
-		
-		modModel 0		"models/multiplayer/mine_marker/allied_marker2.md3"
-		modModel 1		"models/multiplayer/mine_marker/axis_marker2.md3"
-		
-		firstPerson {
-			model		"models/multiplayer/landmine/v_plandmine.md3"
+		missileBouncingSound {
+			default "sound/weapons/landmine/mine_bounce.wav"
 		}
-		
+		missileTrailFunc	"PyroSmokeTrail"
+
+		adjustLean 1 1 1
+		reviveLowerHeight 3.5
+
+		modModel 0			"models/multiplayer/mine_marker/allied_marker2.md3"
+		modModel 1			"models/multiplayer/mine_marker/axis_marker2.md3"
+
+		// the mine releases gas instead of exploding, this is only used when it gets destroyed by an explosion
+		impactDurationCoeff 3
+		impactMarkMaxRange  -1	// -1 infinite
+		impactSoundRange  400
+		impactParticle    "particles/small_explosion.particle"
+		impactSoundVolume 127
+		impactMarkRadius  64
+		impactSound {
+			default "sound/weapons/landmine/mine_expl.wav"
+			far     "sound/weapons/landmine/mine_expl_far.wav"
+			water   "sound/weapons/grenade/gren_expl_water.wav"
+		}
+		impactMark {
+			default "gfx/damage/burn_med_mrk"
+		}
+
+		firstPerson {
+			model			"models/multiplayer/landmine/v_plandmine.md3"
+
+			dynFov90  -5.0 8.0 0.0
+			dynFov120 -4.0 2.0 0.0
+		}
+
 		thirdPerson {
-			model		"models/multiplayer/landmine/plandmine.md3"
+			model			"models/multiplayer/landmine/plandmine.md3"
 		}
 	}
 }

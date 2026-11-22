@@ -1858,7 +1858,7 @@ void G_RecoverLandmine(gentity_t *traceEnt, gentity_t *ent)
 	}
 
 	// take away a shot from the player who threw the mine (not necessarily the same player who's trying to arm it)
-	owner->client->sess.aWeaponStats[WS_LANDMINE].atts--;
+	owner->client->sess.aWeaponStats[traceEnt->s.weapon == WP_POISON_MINE ? WS_POISON_MINE : WS_LANDMINE].atts--;
 
 	// free at the very end so traceEnt stays valid for long enough
 	G_FreeEntity(traceEnt);
@@ -3705,6 +3705,64 @@ void weapon_smokeBombExplode(gentity_t *ent)
 	}
 }
 
+#define POISONBOMB_TICK_TIME 800    ///< time between two gas damage ticks (NitMod)
+
+/**
+ * @brief weapon_poisonBombExplode
+ * @param[in,out] ent
+ *
+ * @note NitMod weapon 50: the poison bomb is a smoke bomb whose cloud hurts.
+ * The cloud is networked exactly like the smoke bomb (effect1Time is the cloud radius,
+ * -1 while dissipating) and deals weapon table splashDamage to everything within
+ * splashRadius every POISONBOMB_TICK_TIME, but only while the cloud is up (like NitMod,
+ * the first tick comes one tick after the cloud appeared). The thrower is the attacker.
+ */
+void weapon_poisonBombExplode(gentity_t *ent)
+{
+	int lived;
+
+	if (!ent->grenadeExplodeTime)
+	{
+		ent->grenadeExplodeTime = level.time;
+		ent->s.effect1Time      = SMOKEBOMB_STARTRADIUS;
+		ent->timestamp          = level.time + POISONBOMB_TICK_TIME;
+	}
+
+	lived          = level.time - ent->grenadeExplodeTime;
+	ent->nextthink = level.time + FRAMETIME;
+
+	if (lived < SMOKEBOMB_GROWTIME)
+	{
+		ent->s.effect1Time = (int)(SMOKEBOMB_STARTRADIUS + lived * ((SMOKEBOMB_FINALRADIUS - SMOKEBOMB_STARTRADIUS) / (float)SMOKEBOMB_GROWTIME));
+	}
+	else if (lived < SMOKEBOMB_SMOKETIME + SMOKEBOMB_GROWTIME)
+	{
+		ent->s.effect1Time = SMOKEBOMB_FINALRADIUS;
+	}
+	else if (lived < SMOKEBOMB_SMOKETIME + SMOKEBOMB_GROWTIME + SMOKEBOMB_POSTSMOKETIME)
+	{
+		ent->s.effect1Time = -1;
+	}
+	else
+	{
+		G_FreeEntity(ent);
+		return;
+	}
+
+	// the cloud only hurts while it is there
+	if (ent->s.effect1Time != -1 && level.time >= ent->timestamp)
+	{
+		vec3_t origin;
+
+		ent->timestamp = level.time + POISONBOMB_TICK_TIME;
+
+		VectorCopy(ent->r.currentOrigin, origin);
+		origin[2] += 16;    // trace from above the ground so the terrain doesn't shield the victims
+
+		G_RadiusDamage(origin, ent, ent->parent, ent->splashDamage, ent->splashRadius, ent, ent->splashMethodOfDeath);
+	}
+}
+
 /*
 ======================================================================
 MACHINEGUN
@@ -4141,7 +4199,7 @@ gentity_t *weapon_grenadelauncher_fire(gentity_t *ent)
 		upangle = .1f;
 	}
 
-	if ((GetWeaponTableData(ent->s.weapon)->type & WEAPON_TYPE_GRENADE) || ent->s.weapon == WP_SMOKE_MARKER || ent->s.weapon == WP_SMOKE_BOMB || ent->s.weapon == WP_BOMB )
+	if ((GetWeaponTableData(ent->s.weapon)->type & WEAPON_TYPE_GRENADE) || ent->s.weapon == WP_SMOKE_MARKER || ent->s.weapon == WP_SMOKE_BOMB || ent->s.weapon == WP_POISON_BOMB || ent->s.weapon == WP_BOMB )
 	{
 		upangle *= 900;
 	}
@@ -4631,6 +4689,7 @@ weapFireTable_t weapFireTable[] =
     { WP_POISON_SYRINGE,       Weapon_PoisonSyringe,        NULL,                       NULL,               ET_GENERAL,            EF_NONE,                    SVF_NONE,                     CONTENTS_NONE,   TR_LINEAR,      0,                     { { 0, 0, 0 }, { 0, 0, 0 } },                    { { 0, 0, 0 }, { 0, 0, 0 } },                    MASK_SHOT,        0,         0,       0,     0,        0,           },
 	{ WP_BOMB,                 weapon_grenadelauncher_fire, G_ExplodeMissile,           NULL,               ET_MISSILE,            EF_BOUNCE_HALF | EF_BOUNCE, SVF_BROADCAST,                CONTENTS_NONE,   TR_GRAVITY,     MISSILE_PRESTEP_TIME,  { { -11.f, -11.f, 0.f }, { 11.f, 11.f, 10.f } }, { { -11.f, -11.f, 0.f }, { 11.f, 11.f, 10.f } }, MASK_MISSILESHOT, 2500,      0,       0,     0,        20,          },
 	{ WP_POISON_MINE,          weapon_grenadelauncher_fire, DynaSink,                   NULL,               ET_MISSILE,            EF_BOUNCE_HALF | EF_BOUNCE, SVF_BROADCAST,                CONTENTS_CORPSE, TR_GRAVITY,     MISSILE_PRESTEP_TIME,  { { -4.f, -4.f, 0.f }, { 4.f, 4.f, 10.f } },     { { -16.f, -16.f, 0.f }, { 16.f, 16.f, 16.f } }, MASK_MISSILESHOT, 15000,     0,       5,     16500,    20,          },
+	{ WP_POISON_BOMB,          weapon_grenadelauncher_fire, weapon_poisonBombExplode,   NULL,               ET_MISSILE,            EF_BOUNCE_HALF | EF_BOUNCE, SVF_BROADCAST,                CONTENTS_NONE,   TR_GRAVITY,     MISSILE_PRESTEP_TIME,  { { -4.f, -4.f, 0.f }, { 4.f, 4.f, 6.f } },      { { -4.f, -4.f, 0.f }, { 4.f, 4.f, 6.f } },      MASK_MISSILESHOT, 2500,      0,       0,     0,        20,          },
 
 };
 // *INDENT-ON*

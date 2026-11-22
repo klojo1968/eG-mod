@@ -895,6 +895,15 @@ void CG_RumbleEfx(float pitch, float yaw)
 #define SMOKEBOMB_STARTRADIUS 16
 #define SMOKEBOMB_FINALRADIUS 640
 
+// poison mine gas look, values taken from Nitmod 2.3.5 (CG_SpawnSmokeSprite for its weapons 50 and 51):
+// start size 7, alpha .25 and a dark green - Nitmod stores 255/180/0 here and overflows the byte conversion
+// when rendering, which ends up as rgb 1/76/0, so this is that colour in the 0-1 range
+#define POISONGAS_SPRITESIZE 7.f
+#define POISONGAS_COLOUR_R   0.f
+#define POISONGAS_COLOUR_G   (76.f / 255.f)
+#define POISONGAS_COLOUR_B   0.f
+#define POISONGAS_ALPHA      .25f
+
 typedef struct smokesprite_s
 {
 	struct smokesprite_s *next;
@@ -1066,11 +1075,23 @@ qboolean CG_SpawnSmokeSprite(centity_t *cent, float dist)
 		VectorCopy(cent->origin2, smokesprite->pos);
 		VectorCopy(bytedirs[Q_LCG(cent->currentState.time + cent->miscInt /*sprite number*/) % NUMVERTEXNORMALS], smokesprite->dir);
 		smokesprite->dir[2]   *= .5f;
-		smokesprite->size      = 16.f;
-		smokesprite->colour[0] = .35f; // + crandom() * .1f;
-		smokesprite->colour[1] = smokesprite->colour[0];
-		smokesprite->colour[2] = smokesprite->colour[0];
-		smokesprite->colour[3] = .8f;
+		if (cent->currentState.weapon == WP_POISON_BOMB || cent->currentState.weapon == WP_POISON_MINE)
+		{
+			// poison gas: a translucent green cloud, the smoke puff texture is grey scale so the vertex colour tints it
+			smokesprite->size      = POISONGAS_SPRITESIZE;
+			smokesprite->colour[0] = POISONGAS_COLOUR_R;
+			smokesprite->colour[1] = POISONGAS_COLOUR_G;
+			smokesprite->colour[2] = POISONGAS_COLOUR_B;
+			smokesprite->colour[3] = POISONGAS_ALPHA;
+		}
+		else
+		{
+			smokesprite->size      = 16.f;
+			smokesprite->colour[0] = .35f; // + crandom() * .1f;
+			smokesprite->colour[1] = smokesprite->colour[0];
+			smokesprite->colour[2] = smokesprite->colour[0];
+			smokesprite->colour[3] = .8f;
+		}
 
 		// Advance sprite
 		if (!CG_SmokeSpritePhysics(smokesprite, dist))

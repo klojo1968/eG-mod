@@ -1186,6 +1186,12 @@ static void AddExtraSpawnAmmo(gclient_t *client, weapon_t weaponNum)
  */
 void AddWeaponToPlayer(gclient_t *client, weapon_t weapon, int ammo, int ammoclip, qboolean setcurrent)
 {
+	// the poison mine is engineer only and can be disabled by the server (g_poisonmine 0)
+	if (weapon == WP_POISON_MINE && (!g_poisonmine.integer || client->sess.playerType != PC_ENGINEER))
+	{
+		return;
+	}
+
 	COM_BitSet(client->ps.weapons, weapon);
 	client->ps.ammoclip[GetWeaponTableData(weapon)->clipIndex] = ammoclip;
 	client->ps.ammo[GetWeaponTableData(weapon)->ammoIndex]    += ammo;

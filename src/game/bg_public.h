@@ -916,7 +916,8 @@ typedef enum
 	WP_POISON_SYRINGE,         ///< 57 Poison syringe, any class with Light Weapons level 4 (g_poison)
 	WP_BOMB,                   ///< 58 thrown, cookable bomb
 	WP_POISON_MINE,            ///< 59	Engineer only - landmine that releases a poison gas cloud when triggered
-	WP_NUM_WEAPONS             ///< 60
+	WP_POISON_BOMB,            ///< 60	Covert Ops only - thrown bomb that releases a poison gas cloud (Nitmod weapon 50)
+	WP_NUM_WEAPONS             ///< 61
 	///< NOTE: this cannot be larger than 64 for AI/player weapons!
 } weapon_t;
 
@@ -1150,6 +1151,7 @@ typedef enum
 	MOD_POISON, // lasting poison (EF_POISONED) from the poison syringe 
 	MOD_BOMB, // thrown bomb
 	MOD_POISON_MINE, // Engineer poison mine gas
+	MOD_POISON_BOMB, // Covert Ops poison bomb gas
 	MOD_NUM_MODS
 
 } meansOfDeath_t;
@@ -1883,6 +1885,7 @@ typedef enum extWeaponStats_e
 	WS_MP34,           ///< 26
 	WS_SYRINGE,        ///< 27
 	WS_TRIPMINE,       ///< 28   -- Engineer tripmine 
+	WS_POISON_MINE,    ///< 29   -- Engineer poison mine (its gas kills are not counted as landmine kills)
 
 	WS_MAX
 } extWeaponStats_t;
@@ -2030,6 +2033,7 @@ typedef enum item_s
 	ITEM_WEAPON_POISON_MINE,
 	ITEM_WEAPON_TRIPMINE,          
 	ITEM_WEAPON_POISON_SYRINGE,    
+	ITEM_WEAPON_POISON_BOMB,
 	ITEM_MAX_ITEMS,
 
 } item_t;

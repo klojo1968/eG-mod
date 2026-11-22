@@ -48,9 +48,9 @@ weapon_t weapBanksMultiPlayer[MAX_WEAP_BANKS_MP][MAX_WEAPS_IN_BANK_MP] =
 	{ WP_LUGER,            WP_COLT,              WP_AKIMBO_COLT,  WP_AKIMBO_LUGER, WP_SILENCER,    WP_SILENCED_COLT, WP_AKIMBO_SILENCEDCOLT, WP_AKIMBO_SILENCEDLUGER, 0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
 	{ WP_MP40,             WP_THOMPSON,          WP_STEN,         WP_GARAND,       WP_PANZERFAUST, WP_FLAMETHROWER,  WP_KAR98,               WP_CARBINE,              WP_FG42, WP_K43, WP_MOBILE_MG42, WP_MOBILE_BROWNING, WP_MORTAR, WP_MORTAR2, WP_BAZOOKA, WP_GPG40, WP_M7, WP_MP34 },
 	{ WP_GRENADE_LAUNCHER, WP_GRENADE_PINEAPPLE, 0,               0,               0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
-	{ WP_MEDIC_SYRINGE,    WP_POISON_SYRINGE,    WP_PLIERS,       WP_SMOKE_MARKER, WP_SMOKE_BOMB,  0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
+	{ WP_MEDIC_SYRINGE,    WP_POISON_SYRINGE,    WP_PLIERS,       WP_SMOKE_MARKER, WP_SMOKE_BOMB,  WP_POISON_BOMB,   0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
 	{ WP_DYNAMITE,         WP_MEDKIT,            WP_AMMO,         WP_SATCHEL,      WP_SATCHEL_DET, WP_BOMB,          0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
-	{ WP_LANDMINE,         WP_MEDIC_ADRENALINE,  WP_POISON_MINE,  0,               0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
+	{ WP_LANDMINE,         WP_MEDIC_ADRENALINE,  WP_POISON_MINE,  WP_TRIPMINE,     0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
 	{ WP_BINOCULARS,       0,                    0,               0,               0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
 	{ 0,                   0,                    0,               0,               0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
 };
@@ -690,7 +690,7 @@ void CG_GrenadeTrail(centity_t *ent)
 		vec3_t colorStart = { 1.0f, 0.0f, 0.0f };
 		vec3_t colorEnd   = { 1.0f, 0.0f, 0.0f };
 
-		if (ent->currentState.weapon == WP_SMOKE_BOMB)
+		if (ent->currentState.weapon == WP_SMOKE_BOMB || ent->currentState.weapon == WP_POISON_BOMB)
 		{
 			VectorSet(colorStart, 0.0f, 0.0f, 1.0f);
 			VectorSet(colorEnd, 0.0f, 0.0f, 1.0f);
@@ -1524,6 +1524,7 @@ void CG_AddPlayerWeapon(refEntity_t *parent, playerState_t *ps, centity_t *cent)
 			}
 			break;
 		case WP_SMOKE_BOMB:
+		case WP_POISON_BOMB:
 			if (
 				// hide gun on max pullback
 				(cg.predictedPlayerState.weaponstate == WEAPON_FIRING && cg.predictedPlayerEntity.pe.weap.frame > 2)
@@ -1657,6 +1658,7 @@ void CG_AddPlayerWeapon(refEntity_t *parent, playerState_t *ps, centity_t *cent)
 			}
 			break;
 		case WP_SMOKE_BOMB:
+		case WP_POISON_BOMB:
 			if ((cg.time > (cent->firedTime + 100)) && (cg.time < (cent->firedTime + 1900)))
 			{
 				return;
@@ -4559,7 +4561,7 @@ void CG_OutOfAmmoChange(qboolean allowForceSwitch)
 			return;
 		}
 
-		if ((GetWeaponTableData(cg.weaponSelect)->type & WEAPON_TYPE_PANZER) || cg.weaponSelect == WP_SMOKE_BOMB || cg.weaponSelect == WP_MEDIC_ADRENALINE)
+		if ((GetWeaponTableData(cg.weaponSelect)->type & WEAPON_TYPE_PANZER) || cg.weaponSelect == WP_SMOKE_BOMB || cg.weaponSelect == WP_POISON_BOMB || cg.weaponSelect == WP_MEDIC_ADRENALINE)
 		{
 			for (i = 0; i < MAX_WEAP_BANK_SWITCH_ORDER; i++)
 			{
