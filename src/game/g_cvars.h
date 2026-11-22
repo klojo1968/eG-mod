@@ -131,6 +131,7 @@ extern vmCvar_t g_covertopsChargeTime;
 
 extern vmCvar_t g_debugConstruct;
 extern vmCvar_t g_landminetimeout;
+extern vmCvar_t g_poisonmine;
 
 /// How fast do SP player and allied bots move?
 extern vmCvar_t g_movespeed;

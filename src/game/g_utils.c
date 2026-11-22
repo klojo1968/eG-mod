@@ -1907,6 +1907,7 @@ team_t G_GetTeamFromEntity(gentity_t *ent)
 		case MOD_BOMB:
 		case MOD_LANDMINE:
 		case MOD_POISON_MINE:
+		case MOD_POISON_BOMB:
 			return ent->s.teamNum;
 		default:
 			break;

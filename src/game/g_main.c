@@ -4449,7 +4449,7 @@ void G_RunEntity(gentity_t *ent, int msec)
 			{
 				ent->s.effect1Time += level.frameTime;
 			}
-			else if (ent->s.weapon == WP_SMOKE_BOMB && ent->grenadeExplodeTime)
+			else if ((ent->s.weapon == WP_SMOKE_BOMB || ent->s.weapon == WP_POISON_BOMB) && ent->grenadeExplodeTime)
 			{
 				ent->grenadeExplodeTime += level.frameTime;
 			}

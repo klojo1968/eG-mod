@@ -2606,6 +2606,7 @@ void weapon_checkAirStrikeThink(gentity_t *ent);
 void weapon_callSecondPlane(gentity_t *ent);
 qboolean weapon_checkAirStrike(gentity_t *ent);
 void weapon_smokeBombExplode(gentity_t *ent);
+void weapon_poisonBombExplode(gentity_t *ent);
 
 void DynaSink(gentity_t *self);
 void DynaFree(gentity_t *self);

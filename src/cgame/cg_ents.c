@@ -1375,7 +1375,7 @@ static void CG_Missile(centity_t *cent)
 		return;
 	}
 
-	if (s1->weapon == WP_SMOKE_BOMB || s1->weapon == WP_POISON_MINE)
+	if (s1->weapon == WP_SMOKE_BOMB || s1->weapon == WP_POISON_BOMB || s1->weapon == WP_POISON_MINE)
 	{
 		// the smoke effect
 		// the smoke effect (for the poison mine this is the gas cloud once triggered: effect1Time

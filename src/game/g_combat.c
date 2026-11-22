@@ -2387,7 +2387,7 @@ qboolean G_RadiusDamage(vec3_t origin, gentity_t *inflictor, gentity_t *attacker
 	{
 		flags |= DAMAGE_HALF_KNOCKBACK;
 	}
-	else if (mod == MOD_POISON_MINE)
+	else if (mod == MOD_POISON_MINE || mod == MOD_POISON_BOMB)
 		 {
 		flags |= DAMAGE_NO_KNOCKBACK;
 		}
@@ -2559,7 +2559,7 @@ qboolean etpro_RadiusDamage(vec3_t origin, gentity_t *inflictor, gentity_t *atta
 	{
 		flags |= DAMAGE_HALF_KNOCKBACK;
 	}
-	else if (mod == MOD_POISON_MINE)
+	else if (mod == MOD_POISON_MINE || mod == MOD_POISON_BOMB)
 		 {
 		flags |= DAMAGE_NO_KNOCKBACK;
 		}

@@ -191,6 +191,7 @@ vmCvar_t refereePassword;
 vmCvar_t shoutcastPassword;
 vmCvar_t g_debugConstruct;
 vmCvar_t g_landminetimeout;
+vmCvar_t g_poisonmine;
 
 // Variable for setting the current level of debug printing/logging
 // enabled in bot scripts and regular scripts.
@@ -397,6 +398,7 @@ cvarTable_t gameCvarTable[] =
 	{ &g_soldierChargeTime,               "g_soldierChargeTime",               "20000",                      CVAR_SERVERINFO | CVAR_LATCH,                    0, qfalse, qtrue  },
 	{ &g_covertopsChargeTime,             "g_covertopsChargeTime",             "30000",                      CVAR_SERVERINFO | CVAR_LATCH,                    0, qfalse, qtrue  },
 	{ &g_landminetimeout,                 "g_landminetimeout",                 "1",                          CVAR_ARCHIVE,                                    0, qfalse, qtrue  },
+	{ &g_poisonmine,                      "g_poisonmine",                      "1",                          CVAR_ARCHIVE,                                    0, qfalse, qtrue  },   // 0 = engineers do not get the poison mine
 
 	{ &g_oss,                             "g_oss",                             "0",                          CVAR_SERVERINFO | CVAR_ROM,                      0, qfalse, qfalse },
 
@@ -470,8 +472,8 @@ cvarTable_t gameCvarTable[] =
 	{ &g_alliedmaxlives,                  "g_alliedmaxlives",                  "0",                          CVAR_LATCH | CVAR_SERVERINFO,                    0, qtrue,  qfalse },
 	{ &g_axismaxlives,                    "g_axismaxlives",                    "0",                          CVAR_LATCH | CVAR_SERVERINFO,                    0, qtrue,  qfalse },
 	{ &g_fastres,                         "g_fastres",                         "0",                          CVAR_ARCHIVE,                                    0, qtrue,  qtrue  },     // Fast Medic Resing
-	{ &g_syringeHealing,                  "g_syringeHealing",                  "0",                          CVAR_ARCHIVE,                                    0, qtrue,  qtrue  }, // Enable syringe healing on alive teammates
-	{ &g_legacyRevives,                   "g_legacyRevives",                   "1",                          CVAR_ARCHIVE,                                    0, qtrue,  qtrue  }, // Legacy ET revive behavior compatibility
+	{ &g_syringeHealing,                  "g_syringeHealing",                  "0",                          CVAR_ARCHIVE,                                    0, qtrue,  qtrue  },	   // Enable syringe healing on alive teammates
+	{ &g_legacyRevives,                   "g_legacyRevives",                   "1",                          CVAR_ARCHIVE,                                    0, qtrue,  qtrue  },     // Legacy ET revive behavior compatibility
 	{ &g_enforcemaxlives,                 "g_enforcemaxlives",                 "1",                          CVAR_ARCHIVE,                                    0, qtrue,  qfalse },     // Gestapo enforce maxlives stuff by temp banning
 
 	{ &g_developer,                       "developer",                         "0",                          CVAR_TEMP,                                       0, qfalse, qfalse },
@@ -479,13 +481,13 @@ cvarTable_t gameCvarTable[] =
 
 	{ &pmove_fixed,                       "pmove_fixed",                       "0",                          CVAR_SYSTEMINFO,                                 0, qfalse, qfalse },
 	{ &pmove_msec,                        "pmove_msec",                        "8",                          CVAR_SYSTEMINFO,                                 0, qfalse, qfalse },
-	{ &g_tripmines,                       "g_tripmines",                       "0",                          CVAR_SERVERINFO | CVAR_LATCH,                    0, qfalse, qfalse },     // 0 = off, 1 = engineers spawn with a tripmine
+	{ &g_tripmines,                       "g_tripmines",                       "1",                          CVAR_SERVERINFO | CVAR_LATCH,                    0, qfalse, qfalse },     // 0 = off, 1 = engineers spawn with a tripmine
 	{ &g_tripmineTimeout,                 "g_tripmineTimeout",                 "1",                          0,                                               0, qfalse, qfalse },     // 1 = remove a player's tripmines when he leaves or changes team
-	{ &g_tripmineArmTime,                     "g_tripmineArmTime",                     "3000",                          0,                                               0, qfalse, qfalse },     // ms between "Tripmine armed" and the laser going live (time for the engineer to step out of it), min 250
+	{ &g_tripmineArmTime,                 "g_tripmineArmTime",                 "3000",                       0,                                               0, qfalse, qfalse },     // ms between "Tripmine armed" and the laser going live (time for the engineer to step out of it), min 250
 	
-	{ &g_poison,                          "g_poison",                          "0",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },     // bitflags, 0 = off. 1: poison syringe, medic syringe cures. 2: health packs and cabinets also cure. 4: slow poison (10 HP / 1.5 s). 8: the poisoner's own packs don't cure. 16: teammates can be poisoned
+	{ &g_poison,                          "g_poison",                          "2",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },     // bitflags, 0 = off. 1: poison syringe, medic syringe cures. 2: health packs and cabinets also cure. 4: slow poison (10 HP / 1.5 s). 8: the poisoner's own packs don't cure. 16: teammates can be poisoned
 	{ &g_poisonClasses,                   "g_poisonClasses",                   "0",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },     // classes that get the poison syringe: 1 soldier, 2 medic, 4 engineer, 8 field ops, 16 covert ops; 0 = all classes
-	{ &g_poisonLevel,                     "g_poisonLevel",                     "4",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },     // Light Weapons level needed for the poison syringe (0 = everyone, NitMod default 4)
+	{ &g_poisonLevel,                     "g_poisonLevel",                     "0",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },     // Light Weapons level needed for the poison syringe (0 = everyone, NitMod default 4)
 	{ &g_weapons,                         "g_weapons",                         "0",                          CVAR_SERVERINFO,                                 0, qfalse, qfalse },     // NitMod compatible bitflags: 32768 tripmines (same as g_tripmines 1)
 	{ &g_damageweapons,                   "g_damageweapons",                   "0",                          0,                                               0, qfalse, qfalse },     // NitMod compatible bitflags: 32 tripmines can be shot and destroyed
 	{ &n_preciseLandmineTrigger,          "n_preciseLandmineTrigger",          "0",                          0,                                               0, qfalse, qfalse },     // 1 = a landmine only triggers when your bounding box touches the mine's, instead of the distance check
