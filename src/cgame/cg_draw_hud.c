@@ -802,7 +802,7 @@ void CG_PlayerAmmoValue(int *ammo, int *clips, int *akimboammo, int *maxammo, ve
 	{
 		float maxAmmo = 0;
 
-		if (weap == IS_LANDMINE_WEAPON(weap))
+		if (IS_LANDMINE_WEAPON(weap))
 		{
 			if (!cgs.gameManager)
 			{

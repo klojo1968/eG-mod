@@ -97,7 +97,14 @@
 #define G_TripminesOn()         (g_tripmines.integer || (g_weapons.integer & WPF_TRIPMINES))
 
 // NitMod g_damageweapons bits
+
+#define DMGW_GRENADE			1			///< grenade can be shot and destroyed
+#define DMGW_SATCHEL			2			///< satchel can be shot and destroyed
+#define DMGW_AIRSTRIKE			4			///< airstrike can be shot and destroyed
+#define DMGW_SMOKECAN			8			///< smokecan can be shot and destroyed
+#define DMGW_BOMBS				16          ///< bombs can be shot and destroyed
 #define DMGW_TRIPMINES          32          ///< tripmines can be shot and destroyed
+#define DMGW_POISONCAN			64			///< poisoncan can be shot and destroyed
 
 /**
  * @enum moverState_t
