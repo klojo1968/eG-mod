@@ -1,6 +1,6 @@
-# eG-mod Header File Guide
+# eG-mod Header File and src/cgame C Source Guide
 
-This document explains the purpose of the repository's C/C++ header files and header templates.
+This document explains the purpose of the repository's C/C++ header files and header templates, plus every C source file in `src/cgame`.
 
 Repository: [`klojo1968/eG-mod`](https://github.com/klojo1968/eG-mod)
 
@@ -169,3 +169,60 @@ Repository: [`klojo1968/eG-mod`](https://github.com/klojo1968/eG-mod)
 |---|---|
 | [`cmake/git_version.h.in`](https://github.com/klojo1968/eG-mod/blob/master/cmake/git_version.h.in) | Template used to generate build-identifying Git version information. |
 | [`cmake/version_generated.h.in`](https://github.com/klojo1968/eG-mod/blob/master/cmake/version_generated.h.in) | Template used to generate the final version header. |
+
+## `src/cgame` C Source Files
+
+| C file | Purpose |
+|---|---|
+| [`src/cgame/cg_atmospheric.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_atmospheric.c) | Atmospheric effects such atmospheric rain/snow and their environmental behavior. |
+| [`src/cgame/cg_camera.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_camera.c) | Demo/cinematic camera playback and camera animation support. |
+| [`src/cgame/cg_character.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_character.c) | Client-side player character model registration and character lookup. |
+| [`src/cgame/cg_commandmap.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_commandmap.c) | Tactical command map display, markers, filtering, objectives, and map interaction. |
+| [`src/cgame/cg_consolecmds.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_consolecmds.c) | Registers and implements client-game console commands and argument completion. |
+| [`src/cgame/cg_customcrosshair.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_customcrosshair.c) | Custom crosshair rendering and configuration. |
+| [`src/cgame/cg_cvars.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_cvars.c) | Client-game console-variable registration and update handling. |
+| [`src/cgame/cg_debriefing.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_debriefing.c) | End-of-match debriefing screen, stats, rankings, objectives, and replay presentation. |
+| [`src/cgame/cg_draw.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_draw.c) | Main active-frame HUD rendering: crosshairs, text, menus, reticles, fade effects, and 2D UI. |
+| [`src/cgame/cg_draw_hud.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_draw_hud.c) | Configurable HUD component drawing and HUD layout behavior. |
+| [`src/cgame/cg_drawtools.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_drawtools.c) | Shared low-level 2D drawing helpers for rectangles, pictures, borders, text, and colored primitives. |
+| [`src/cgame/cg_edv.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_edv.c) | Extended demo viewer controls and demo playback camera behavior. |
+| [`src/cgame/cg_effects.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_effects.c) | Client-side visual effects, explosions, decals, dust, smoke, and impact events. |
+| [`src/cgame/cg_ents.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_ents.c) | Translates server entity states into client/render entities and interpolation. |
+| [`src/cgame/cg_event.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_event.c) | Processes server entity events into sounds, particles, weapon effects, damage, and animations. |
+| [`src/cgame/cg_fireteamoverlay.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_fireteamoverlay.c) | In-game fireteam member overlay and status display. |
+| [`src/cgame/cg_fireteams.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_fireteams.c) | Fireteam UI setup, menu interaction, joining, invitations, and member rendering. |
+| [`src/cgame/cg_flamethrower.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_flamethrower.c) | Flamethrower flame chunks, trails, particles, and firing effects. |
+| [`src/cgame/cg_hud_editor.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_hud_editor.c) | Interactive custom HUD editor and component manipulation. |
+| [`src/cgame/cg_hud_iconfeed.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_hud_iconfeed.c) | Short-lived HUD icon feeds and icon notification presentation. |
+| [`src/cgame/cg_hud_io.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_hud_io.c) | Loading, saving, parsing, and applying custom HUD configuration files. |
+| [`src/cgame/cg_info.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_info.c) | Loading-screen information and server/map status display. |
+| [`src/cgame/cg_limbopanel.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_limbopanel.c) | Limbo/team/class/spawn selection menu implementation. |
+| [`src/cgame/cg_loadpanel.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_loadpanel.c) | Loading panel graphics and progress text. |
+| [`src/cgame/cg_localents.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_localents.c) | Manages client-only effects such as particles, debris, gibs, brass, blood, sparks, and tracers. |
+| [`src/cgame/cg_locations.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_locations.c) | Map location names and location-label lookup for HUD/map display. |
+| [`src/cgame/cg_main.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_main.c) | Client-game VM entry point, initialization, media precaching, shutdown, and shared setup. |
+| [`src/cgame/cg_marks.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_marks.c) | Adds wall marks, decals, shadows, and impact splats to the scene. |
+| [`src/cgame/cg_missionbriefing.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_missionbriefing.c) | Mission briefing presentation and objective text. |
+| [`src/cgame/cg_multiview.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_multiview.c) | Multiple-spectator view handling and multiview camera selection. |
+| [`src/cgame/cg_newDraw.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_newDraw.c) | New/extended HUD drawing and owner-draw integration. |
+| [`src/cgame/cg_particles.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_particles.c) | Particle-system data structures and particle effect spawning/rendering. |
+| [`src/cgame/cg_players.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_players.c) | Client-side player rendering, poses, animations, skins, heads, names, and weapons. |
+| [`src/cgame/cg_playerstate.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_playerstate.c) | Interprets player-state changes and derives client-side damage/status state. |
+| [`src/cgame/cg_polybus.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_polybus.c) | Dynamic polygon-buffer allocation and rendering queue support. |
+| [`src/cgame/cg_popupmessages.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_popupmessages.c) | Popup notification, XP gain, objective, and other transient message display. |
+| [`src/cgame/cg_predict.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_predict.c) | Local player movement prediction and correction against server snapshots. |
+| [`src/cgame/cg_public.h`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_public.h) | Client-game public import/export API and engine-facing event types. |
+| [`src/cgame/cg_scoreboard.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_scoreboard.c) | Scoreboard, match results, player names, teams, and ranks. |
+| [`src/cgame/cg_servercmds.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_servercmds.c) | Processes server-to-client command strings and updates client-game state. |
+| [`src/cgame/cg_shoutcastoverlay.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_shoutcastoverlay.c) | Shoutcaster-specific overlays, labels, feeds, and match information. |
+| [`src/cgame/cg_snapshot.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_snapshot.c) | Snapshot interpolation, player-state transitions, and entity snapshot processing. |
+| [`src/cgame/cg_sound.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_sound.c) | Client sound scripts, event sounds, voice packets, footstep audio, and sound precaching. |
+| [`src/cgame/cg_spawn.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_spawn.c) | Parsing and creating client-visible entities from map/entity definitions. |
+| [`src/cgame/cg_spawnpoints.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_spawnpoints.c) | Spawn-point selection UI and spawn marker display. |
+| [`src/cgame/cg_statsranksmedals.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_statsranksmedals.c) | Player statistics, rank progression, medals, and debriefing ranks. |
+| [`src/cgame/cg_syscalls.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_syscalls.c) | Client-game VM syscall wrappers for engine services. |
+| [`src/cgame/cg_trails.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_trails.c) | Trail junction creation and rendering for smoke, blood, missiles, sparks, and debris. |
+| [`src/cgame/cg_view.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_view.c) | First-person camera, bobbing, recoil, damage, zoom, and view shake logic. |
+| [`src/cgame/cg_weapon_io.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_weapon_io.c) | Loads weapon configuration files and exposes weapon model/media data. |
+| [`src/cgame/cg_weapons.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_weapons.c) | Weapon model registration, view/world rendering, animations, muzzle flashes, brass, trails, and switching. |
+| [`src/cgame/cg_window.c`](https://github.com/klojo1968/eG-mod/blob/master/src/cgame/cg_window.c) | Small client-game window system for menus, overlays, and interactive UI panels. |
