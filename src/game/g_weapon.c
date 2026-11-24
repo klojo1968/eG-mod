@@ -3930,6 +3930,47 @@ gentity_t *Bullet_Fire(gentity_t *ent)
 }
 
 /**
+ * @brief Weapon_M97 - Jaymod Winchester M97 pump-action shotgun
+ *
+ * @details Fires M97_COUNT pellets, each one an independent hitscan trace with its own
+ * random spread (M97_SPREAD, from the weaponTable) and damage (weaponTable damage per pellet).
+ * Pellets are not headshot capable and are affected by distance falloff. The weapon is fired
+ * through the usual EV_FIRE_WEAPON event, so muzzle flash and sounds come from m97.weap.
+ *
+ * @param[in] ent
+ * @return NULL, the shotgun has no projectile
+ */
+gentity_t * Weapon_M97(gentity_t * ent)
+ {
+	int    i;
+	vec3_t end;
+	float  spread = GetWeaponTableData(ent->s.weapon)->spread;
+
+	G_HistoricalTraceBegin(ent);
+
+	// skip corpses for bullet tracing (=non gibbing weapons)
+	G_TempTraceIgnoreBodies();
+
+	for (i = 0; i < M97_COUNT; i++)
+	{
+		// every pellet has its own end point inside the spread cone
+		VectorMA(muzzleTrace, MAX_TRACE, forward, end);
+		VectorMA(end, crandom() * spread, right, end);
+		VectorMA(end, crandom() * spread, up, end);
+
+		Bullet_Fire_Extended(ent, ent, muzzleTrace, end, forward, GetWeaponTableData(ent->s.weapon)->damage,
+			GetWeaponTableData(ent->s.weapon)->attributes & WEAPON_ATTRIBUT_FALL_OFF, GetWeaponTableData(ent->s.weapon)->mod);
+	}
+
+	// ok let the bodies be traced again
+	G_ResetTempTraceIgnoreEnts();
+	G_HistoricalTraceEnd(ent);
+
+	return NULL;
+}
+
+
+/**
  * @brief A modified Bullet_Fire with more parameters.
  *
  * @details The original Bullet_Fire still passes through here and functions as it always has.
@@ -4690,6 +4731,7 @@ weapFireTable_t weapFireTable[] =
 	{ WP_BOMB,                 weapon_grenadelauncher_fire, G_ExplodeMissile,           NULL,               ET_MISSILE,            EF_BOUNCE_HALF | EF_BOUNCE, SVF_BROADCAST,                CONTENTS_NONE,   TR_GRAVITY,     MISSILE_PRESTEP_TIME,  { { -11.f, -11.f, 0.f }, { 11.f, 11.f, 10.f } }, { { -11.f, -11.f, 0.f }, { 11.f, 11.f, 10.f } }, MASK_MISSILESHOT, 2500,      0,       0,     0,        20,          },
 	{ WP_POISON_MINE,          weapon_grenadelauncher_fire, DynaSink,                   NULL,               ET_MISSILE,            EF_BOUNCE_HALF | EF_BOUNCE, SVF_BROADCAST,                CONTENTS_CORPSE, TR_GRAVITY,     MISSILE_PRESTEP_TIME,  { { -4.f, -4.f, 0.f }, { 4.f, 4.f, 10.f } },     { { -16.f, -16.f, 0.f }, { 16.f, 16.f, 16.f } }, MASK_MISSILESHOT, 15000,     0,       5,     16500,    20,          },
 	{ WP_POISON_BOMB,          weapon_grenadelauncher_fire, weapon_poisonBombExplode,   NULL,               ET_MISSILE,            EF_BOUNCE_HALF | EF_BOUNCE, SVF_BROADCAST,                CONTENTS_NONE,   TR_GRAVITY,     MISSILE_PRESTEP_TIME,  { { -4.f, -4.f, 0.f }, { 4.f, 4.f, 6.f } },      { { -4.f, -4.f, 0.f }, { 4.f, 4.f, 6.f } },      MASK_MISSILESHOT, 2500,      0,       0,     0,        20,          },
+	{ WP_M97,				   Weapon_M97,                  NULL,                       NULL,               ET_GENERAL,            EF_NONE,                    SVF_NONE,                     CONTENTS_NONE,   TR_LINEAR,      0,                     { { 0, 0, 0 }, { 0, 0, 0 } },                    { { 0, 0, 0 }, { 0, 0, 0 } },                    MASK_SHOT,        0,         0,       0,     0,        0,           },
 
 };
 // *INDENT-ON*

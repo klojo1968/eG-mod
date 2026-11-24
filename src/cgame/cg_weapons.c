@@ -46,7 +46,7 @@ weapon_t weapBanksMultiPlayer[MAX_WEAP_BANKS_MP][MAX_WEAPS_IN_BANK_MP] =
 	{ 0,                   0,                    0,               0,               0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       }, // empty bank '0'
 	{ WP_KNIFE,            WP_KNIFE_KABAR,       0,               0,               0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
 	{ WP_LUGER,            WP_COLT,              WP_AKIMBO_COLT,  WP_AKIMBO_LUGER, WP_SILENCER,    WP_SILENCED_COLT, WP_AKIMBO_SILENCEDCOLT, WP_AKIMBO_SILENCEDLUGER, 0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
-	{ WP_MP40,             WP_THOMPSON,          WP_STEN,         WP_GARAND,       WP_PANZERFAUST, WP_FLAMETHROWER,  WP_KAR98,               WP_CARBINE,              WP_FG42, WP_K43, WP_MOBILE_MG42, WP_MOBILE_BROWNING, WP_MORTAR, WP_MORTAR2, WP_BAZOOKA, WP_GPG40, WP_M7, WP_MP34 },
+	{ WP_MP40,             WP_THOMPSON,          WP_STEN,         WP_GARAND,       WP_PANZERFAUST, WP_FLAMETHROWER,  WP_KAR98,               WP_CARBINE,              WP_FG42, WP_K43, WP_MOBILE_MG42, WP_MOBILE_BROWNING, WP_MORTAR, WP_MORTAR2, WP_BAZOOKA, WP_GPG40, WP_M7, WP_MP34, WP_M97  },
 	{ WP_GRENADE_LAUNCHER, WP_GRENADE_PINEAPPLE, 0,               0,               0,              0,                0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
 	{ WP_MEDIC_SYRINGE,    WP_POISON_SYRINGE,    WP_PLIERS,       WP_SMOKE_MARKER, WP_SMOKE_BOMB,  WP_POISON_BOMB,   0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
 	{ WP_DYNAMITE,         WP_MEDKIT,            WP_AMMO,         WP_SATCHEL,      WP_SATCHEL_DET, WP_BOMB,          0,                      0,                       0,       0,      0,              0,                  0,         0,          0,          0,        0,     0       },
@@ -255,7 +255,11 @@ void CG_MachineGunEjectBrass(centity_t *cent)
 	}
 	else
 	{
-		if (GetWeaponTableData(cent->currentState.weapon)->type & (WEAPON_TYPE_MG | WEAPON_TYPE_RIFLE))
+		if (cent->currentState.weapon == WP_M97)
+		{
+			re->hModel = cgs.media.shotgunBrassModel;
+		}
+		 else if (GetWeaponTableData(cent->currentState.weapon)->type & (WEAPON_TYPE_MG | WEAPON_TYPE_RIFLE))
 		{
 			re->hModel = cgs.media.machinegunBrassModel;
 		}
@@ -357,6 +361,10 @@ void CG_MachineGunEjectBrass(centity_t *cent)
 	{
 		le->leBounceSoundType = LEBS_NONE;
 	}
+	else if (cent->currentState.weapon == WP_M97)
+		 {
+		le->leBounceSoundType = LEBS_SG_BRASS;
+		}
 	else
 	{
 		le->leBounceSoundType = LEBS_BRASS;
@@ -3059,6 +3067,15 @@ void CG_AddViewWeapon(playerState_t *ps)
 			hand->axis[0][0]       *= .8f;
 			hand->axis[0][1]       *= .8f;
 			hand->axis[0][2]       *= .8f;
+			hand->nonNormalizedAxes = qtrue;
+		}
+
+		// Jaymod - per weapon scale of the first person model
+		if (weapon->scaleFirstPerson)
+		{
+			hand->axis[0][0] *= weapon->scaleFirstPerson;
+			hand->axis[0][1] *= weapon->scaleFirstPerson;
+			hand->axis[0][2] *= weapon->scaleFirstPerson;
 			hand->nonNormalizedAxes = qtrue;
 		}
 

@@ -225,7 +225,7 @@ weaponTable_t weaponTable[WP_NUM_WEAPONS] =
 	{ WP_BOMB,                 ITEM_WEAPON_BOMB,                  TEAM_FREE,   SK_EXPLOSIVES_AND_CONSTRUCTION,              WP_NONE,                WP_NONE,                 WP_NONE,  WP_BOMB,              WP_BOMB,              0,     0,     0,          350,         300,         WEAPON_TYPE_NONE,                          WEAPON_FIRING_MODE_THROWABLE | WEAPON_FIRING_MODE_ONE_SHOT,  WEAPON_ATTRIBUT_CHARGE_TIME | WEAPON_ATTRIBUT_FIRE_UNDERWATER | WEAPON_ATTRIBUT_SHAKE,                                                                       0,      0,     "BOMB",                WS_MAX,             qfalse, qfalse, 1,      0,   1,      1000,      DELAY_THROW,   1600,        4000,       0,                0,      0,       0,               250,            250,             0,                0,              0,        { 14, 20, 0 },    0,                 { 0, 0 },       { 0, 0 },      "bomb",            "bomb",                  SK_ENGINEER_STAMINA,              {1, .66f},      MOD_BOMB,                MOD_BOMB                 },  // WP_BOMB                  // 56   // Nitmod style thrown bomb
 	{ WP_POISON_MINE,          ITEM_WEAPON_POISON_MINE,           TEAM_FREE,   SK_EXPLOSIVES_AND_CONSTRUCTION,              WP_NONE,                WP_NONE,                 WP_NONE,  WP_POISON_MINE,       WP_POISON_MINE,       0,     0,     0,          20,          250,         WEAPON_TYPE_NONE,                          WEAPON_FIRING_MODE_THROWABLE | WEAPON_FIRING_MODE_ONE_SHOT,  WEAPON_ATTRIBUT_CHARGE_TIME | WEAPON_ATTRIBUT_KEEP_DESGUISE | WEAPON_ATTRIBUT_NEVER_LOST_DESGUISE | WEAPON_ATTRIBUT_FIRE_UNDERWATER | WEAPON_ATTRIBUT_SHAKE, 0,      0,     "",                    WS_POISON_MINE,    qtrue,  qfalse, 1,      0,   1,      100,       100,           100,         0,          0,                0,      0,       0,               250,            250,             0,                0,              0,        { 14, 6, -4 },    0,                 { 0, 0 },       { 0, 0 },      "poison_mine",     "landmine_pgas",         SK_ENGINEER_STAMINA,              {.5f, .33f},    MOD_POISON_MINE,          MOD_POISON_MINE          },  // WP_POISON_MINE          // 51   // splashDamage = damage per gas tick, splashRadius = gas damage radius (values from Nitmod weapon 51)
 	{ WP_POISON_BOMB,          ITEM_WEAPON_POISON_BOMB,           TEAM_FREE,   SK_MILITARY_INTELLIGENCE_AND_SCOPED_WEAPONS, WP_NONE,                WP_NONE,                 WP_NONE,  WP_POISON_BOMB,       WP_POISON_BOMB,       0,     0,     0,          20,          250,         WEAPON_TYPE_NONE,                          WEAPON_FIRING_MODE_THROWABLE | WEAPON_FIRING_MODE_ONE_SHOT,  WEAPON_ATTRIBUT_CHARGE_TIME | WEAPON_ATTRIBUT_KEEP_DESGUISE | WEAPON_ATTRIBUT_NEVER_LOST_DESGUISE | WEAPON_ATTRIBUT_FIRE_UNDERWATER | WEAPON_ATTRIBUT_SHAKE, 0,      0,     "",                    WS_MAX,             qfalse, qfalse, 1,      0,   10,     1000,      DELAY_THROW,   1600,        4000,       0,                0,      0,       0,               250,            250,             0,                0,              0,        { 14, 20, 0 },    0,                 { 0, 0 },       { 0, 0 },      "poison_bomb",     "poisonbomb" ,          SK_COVERTOPS_STAMINA,             {1, .66f},      MOD_POISON_BOMB,          MOD_POISON_BOMB            },  // WP_POISON_BOMB          // 60   // splashDamage = damage per gas tick, splashRadius = gas radius (Nitmod weapon 50: 20 / 250)
-
+	{ WP_M97,				   ITEM_WEAPON_M97,                   TEAM_FREE,   SK_LIGHT_WEAPONS,                            WP_NONE,                WP_M97,                  WP_NONE,  WP_M97,               WP_M97,               12,    700,   0.6f,       0,           0,           WEAPON_TYPE_SMG,                           WEAPON_FIRING_MODE_SEMI_AUTOMATIC,                           WEAPON_ATTRIBUT_FALL_OFF,                                                                                                                                      0,      0,     "M97",                 WS_MAX,             qtrue,  qtrue,  18,     1,   6,      1250,      DELAY_LOW,     1000,        0,          15,               0,      0,       0,               250,            250,             0,                0,              0,        { 14, 6, -4 },    250,               { .2f, 1.f },   { 0, 0 },      "",                "m97",                   0,                                {1, 1},         MOD_M97,                  MOD_M97                  },  // WP_M97                  // 61   // Jaymod shotgun: damage = per pellet (M97_COUNT pellets), spread = M97_SPREAD, loaded shell by shell
 };
 
 /**
@@ -343,6 +343,7 @@ modTable_t modTable[MOD_NUM_MODS] =
 	{ MOD_BOMB,                               WP_BOMB,                 qfalse,    qtrue,      WEAPON_CLASS_FOR_MOD_EXPLOSIVE, qfalse,      "was blasted by",            "'s bomb",                        "blew himself up",                       NULL,                                     "MOD_BOMB",                               SK_EXPLOSIVES_AND_CONSTRUCTION,              3.f,             3.f,             {0.f, 0.f, 0.f, 0.f}, qfalse,      "bomb",                3,            WS_MAX             },
 	{ MOD_POISON_MINE,                        WP_POISON_MINE,          qfalse,    qfalse,     WEAPON_CLASS_FOR_MOD_NO,        qfalse,      "was gassed by",             "'s Poison Mine",                 "gassed himself",                        NULL,                                     "MOD_POISON_MINE",                        SK_EXPLOSIVES_AND_CONSTRUCTION,              3.f,             3.f,             {0.f, 0.f, 0.f, 0.f}, qfalse,      "poison mine",         3,            WS_POISON_MINE    },
 	{ MOD_POISON_BOMB,                        WP_POISON_BOMB,          qfalse,    qfalse,     WEAPON_CLASS_FOR_MOD_NO,        qfalse,      "was gassed by",             "'s Poison Bomb",                 "choked on his own poison gas",                        NULL,                                     "MOD_POISON_BOMB",                        SK_MILITARY_INTELLIGENCE_AND_SCOPED_WEAPONS,              3.f,             3.f,             {0.f, 0.f, 0.f, 0.f}, qfalse,      "poison bomb",         3,            WS_MAX        },
+	{ MOD_M97,                               WP_M97,                  qfalse,    qfalse,     WEAPON_CLASS_FOR_MOD_NO,        qfalse,      "was killed by",             "'s M97",                         "killed himself",                        NULL,                                     "MOD_M97",                                SK_LIGHT_WEAPONS,                            3.f,             0.f,             {5.f, 3.f, 3.f, 3.f}, qfalse,      "",                    2,            WS_MAX             },
 
 };
 
@@ -2528,6 +2529,27 @@ gitem_t bg_itemlist[] =
 #ifdef CGAMEDLL
 		{ 0, { 0 }, { 0 } },
 #endif
+ },
+	// weapon_m97 (Jaymod Winchester M97 shotgun)
+{
+	ITEM_WEAPON_M97,
+		"weapon_m97",
+		"sound/misc/w_pkup.wav",
+		{
+		"models/weapons2/m97/m97_pickup.md3",
+			"models/weapons2/m97/v_m97.md3",
+			0
+			 },
+		"icons/iconw_thompson_1",    // icon
+		"icons/ammo2",               // ammo icon
+		"M97",                       // pickup
+		30,
+		IT_WEAPON,
+		WP_M97,
+		PW_NONE,
+		#ifdef CGAMEDLL
+		 { 0, { 0 }, { 0 } },
+#endif
 	},
 	/// end of list marker
 	{
@@ -3742,7 +3764,9 @@ const char *eventnames[EV_MAX_EVENTS] =
 	"EV_BODY_DP",
 	"EV_FLAG_INDICATOR",
 	"EV_MISSILE_FALLING",
-	"EV_PLAYER_HIT"
+	"EV_PLAYER_HIT",
+	"EV_PLAYER_REVIVE",
+	"EV_M97_PUMP"
 	//"EV_MAX_EVENTS",
 };
 

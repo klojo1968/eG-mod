@@ -955,6 +955,7 @@ typedef struct weaponInfo_s
 	partModel_t partModels[W_NUM_TYPES][W_MAX_PARTS];
 	qhandle_t flashModel[W_NUM_TYPES];
 	float flashScale[2];
+	float scaleFirstPerson;             ///< Jaymod - scale of the first person weapon model (0 = unscaled)
 	qhandle_t modModels[6];             ///< like the scope for the rifles
 
 	vec3_t flashDlightColor;
@@ -1141,7 +1142,7 @@ typedef struct
 } demoBackwardsCompat_t;
 
 #define MAX_WEAP_BANKS_MP          10
-#define MAX_WEAPS_IN_BANK_MP       18
+#define MAX_WEAPS_IN_BANK_MP       19
 #define MAX_WEAP_BANK_SWITCH_ORDER 4
 
 #define MAX_BACKUP_STATES (CMD_BACKUP_ETL + 2)
@@ -1653,6 +1654,7 @@ typedef struct
 	qhandle_t machinegunBrassModel;
 	qhandle_t panzerfaustBrassModel;
 	qhandle_t smallgunBrassModel;
+	qhandle_t shotgunBrassModel;        ///< Jaymod M97 shell
 
 	qhandle_t railCoreShader;
 	qhandle_t ropeShader;
