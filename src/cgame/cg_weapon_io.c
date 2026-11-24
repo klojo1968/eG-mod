@@ -1267,7 +1267,14 @@ static qboolean CG_RW_ParseClient(int handle, weaponInfo_t *weaponInfo)
 			break;
 		}
 
-		if (!Q_stricmp(token.string, "standModel"))
+		if (!Q_stricmp(token.string, "scaleFirstPerson"))
+			 {
+			if (!PC_Float_Parse(handle, &weaponInfo->scaleFirstPerson))
+				 {
+				return CG_RW_ParseError(handle, "expected scaleFirstPerson value");
+				}
+			 }
+		else if (!Q_stricmp(token.string, "standModel"))
 		{
 			if (!PC_String_ParseNoAlloc(handle, filename, sizeof(filename)))
 			{

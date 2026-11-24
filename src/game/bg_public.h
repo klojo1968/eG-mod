@@ -595,6 +595,10 @@ typedef struct pmoveExt_s
 	int airTime;
 	int switchToScopeTime;
 
+	// Jaymod - M97 shotgun shell-by-shell reload
+	qboolean m97reloadInterrupt;   ///< fire pressed while reloading: stop after the shell being loaded
+	int m97reloadState;            ///< m97ReloadState_t
+
 } pmoveExt_t;  ///< data used both in client and server - store it here
 ///< instead of playerstate to prevent different engine versions of playerstate between XP and MP
 
@@ -917,6 +921,7 @@ typedef enum
 	WP_BOMB,                   ///< 58 thrown, cookable bomb
 	WP_POISON_MINE,            ///< 59	Engineer only - landmine that releases a poison gas cloud when triggered
 	WP_POISON_BOMB,            ///< 60	Covert Ops only - thrown bomb that releases a poison gas cloud (Nitmod weapon 50)
+	WP_M97,                    ///< 61 Winchester M97 pump-action shotgun
 	WP_NUM_WEAPONS             ///< 61
 	///< NOTE: this cannot be larger than 64 for AI/player weapons!
 } weapon_t;
@@ -1152,6 +1157,7 @@ typedef enum
 	MOD_BOMB, // thrown bomb
 	MOD_POISON_MINE, // Engineer poison mine gas
 	MOD_POISON_BOMB, // Covert Ops poison bomb gas
+	MOD_M97, // Winchester M97 shotgun (Jaymod)
 	MOD_NUM_MODS
 
 } meansOfDeath_t;
@@ -1248,6 +1254,32 @@ typedef struct
 	int hitRegions[HR_NUM_HITREGIONS];
 	int objectiveStats[MAX_OBJECTIVES];
 } playerStats_t;
+
+// Jaymod - Winchester M97 shotgun
+#define M97_COUNT   11    ///< number of pellets fired per shot
+#define M97_SPREAD  700   ///< pellet spread (same scale as the weaponTable spread, units at MAX_TRACE)
+
+// Animation time = 1000 / fps * numFrames, see models/weapons2/m97/weapon.cfg
+#define M97_RLT_RELOAD1         400   ///< reload normal shell start	
+#define M97_RLT_RELOAD2         900   ///< reload normal shell loop
+#define M97_RLT_RELOAD2_QUICK   600   ///< reload normal shell loop, Light Weapons level 2+
+#define M97_RLT_RELOAD3         550   ///< reload normal shell end
+#define M97_RLT_ALTSWITCHFROM   2000  ///< reload first shell and pump start
+#define M97_RLT_ALTSWITCHTO     300   ///< reload first shell and pump to loop
+#define M97_RLT_DROP2           375   ///< reload first shell and pump end
+
+/**
+ * @enum m97ReloadState_t
+ * @brief Shotgun reload states (stored in pmoveExt_t::m97reloadState)
+ */
+typedef enum
+ {
+		M97_READY,                ///< not reloading
+		M97_RELOADING_BEGIN,      ///< reload normal shell start
+		M97_RELOADING_BEGIN_PUMP, ///< reload first shell and pump start
+		M97_RELOADING_AFTER_PUMP, ///< reload first shell and pump to loop
+		M97_RELOADING_LOOP        ///< reload normal shell loop
+ } m97ReloadState_t;
 
 /**
  * @struct weaponTable_s
@@ -1535,6 +1567,7 @@ typedef enum
 	EV_MISSILE_FALLING,///< 130
 	EV_PLAYER_HIT,     ///< 131 - hitsound event
 	EV_PLAYER_REVIVE,  ///< 132
+	EV_M97_PUMP,       ///< 133 - Jaymod shotgun pump sound while reloading an empty M97
 	EV_MAX_EVENTS      ///< 132 - just added as an 'endcap'
 } entity_event_t;
 
@@ -2034,6 +2067,7 @@ typedef enum item_s
 	ITEM_WEAPON_TRIPMINE,          
 	ITEM_WEAPON_POISON_SYRINGE,    
 	ITEM_WEAPON_POISON_BOMB,
+	ITEM_WEAPON_M97,
 	ITEM_MAX_ITEMS,
 
 } item_t;
@@ -2321,6 +2355,12 @@ typedef enum
 	ANIM_ET_NOPOWER,
 	ANIM_ET_ACTIVATE,
 
+	ANIM_ET_RELOAD_SG1,
+	ANIM_ET_RELOAD_SG2,
+	ANIM_ET_RELOAD_SG3,
+	ANIM_ET_RELOADPRONE_SG1,
+	ANIM_ET_RELOADPRONE_SG2,
+	ANIM_ET_RELOADPRONE_SG3,
 	NUM_ANIM_EVENTTYPES
 } scriptAnimEventTypes_t;
 

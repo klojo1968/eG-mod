@@ -51,6 +51,7 @@ bg_playerclass_t bg_playerClasses[2][NUM_PLAYER_CLASSES] =
 				{ WP_FLAMETHROWER,         SK_HEAVY_WEAPONS,                            0,                         200, 0   },
 				{ WP_PANZERFAUST,          SK_HEAVY_WEAPONS,                            0,                         4,   0   },
 				{ WP_MORTAR2,              SK_HEAVY_WEAPONS,                            0,                         15,  0   },
+				{ WP_M97,                  SK_LIGHT_WEAPONS,                            0,                         12,  6   }, // Jaymod shotgun, all classes
 			},
 			{
 				{ WP_LUGER,                SK_LIGHT_WEAPONS,                            0,                         24,  8   },
@@ -73,6 +74,8 @@ bg_playerclass_t bg_playerClasses[2][NUM_PLAYER_CLASSES] =
 			{ WP_KNIFE,                SK_LIGHT_WEAPONS,                            0,                         1,   0   },
 			{
 				{ WP_MP40,                 SK_LIGHT_WEAPONS,                            0,                         0,   30  }, // medic start with 1 clip less
+				{ WP_M97,                  SK_LIGHT_WEAPONS,                            0,                         12,  6   }, // Jaymod shotgun, all classes
+
 			},
 			{
 				{ WP_LUGER,                SK_LIGHT_WEAPONS,                            0,                         24,  8   },
@@ -98,6 +101,8 @@ bg_playerclass_t bg_playerClasses[2][NUM_PLAYER_CLASSES] =
 			{
 				{ WP_MP40,                 SK_LIGHT_WEAPONS,                            0,                         30,  30  },
 				{ WP_KAR98,                SK_LIGHT_WEAPONS,                            0,                         20,  10  },
+				{ WP_M97,                  SK_LIGHT_WEAPONS,                            0,                         12,  6   }, // Jaymod shotgun, all classes
+
 			},
 			{
 				{ WP_LUGER,                SK_LIGHT_WEAPONS,                            0,                         24,  8   },
@@ -126,6 +131,7 @@ bg_playerclass_t bg_playerClasses[2][NUM_PLAYER_CLASSES] =
 			{ WP_KNIFE,                SK_LIGHT_WEAPONS,                            0,                         1,   0   },
 			{
 				{ WP_MP40,                 SK_LIGHT_WEAPONS,                            0,                         30,  30  },
+				{ WP_M97,                  SK_LIGHT_WEAPONS,                            0,                         12,  6   }, // Jaymod shotgun, all classes
 			},
 			{
 				{ WP_LUGER,                SK_LIGHT_WEAPONS,                            0,                         24,  8   },
@@ -151,6 +157,8 @@ bg_playerclass_t bg_playerClasses[2][NUM_PLAYER_CLASSES] =
 				{ WP_MP34,                 SK_LIGHT_WEAPONS,                            0,                         64,  32  }, // covert-ops start with x2 ammo
 				{ WP_FG42,                 SK_LIGHT_WEAPONS,                            0,                         40,  20  },
 				{ WP_K43,                  SK_MILITARY_INTELLIGENCE_AND_SCOPED_WEAPONS, 0,                         20,  10  },
+				{ WP_M97,                 SK_LIGHT_WEAPONS,                            0,                         12,  6   }, // Jaymod shotgun, all classes
+
 			},
 			{
 				{ WP_SILENCER,             SK_LIGHT_WEAPONS,                            0,                         24,  8   },
@@ -183,6 +191,7 @@ bg_playerclass_t bg_playerClasses[2][NUM_PLAYER_CLASSES] =
 				{ WP_FLAMETHROWER,         SK_HEAVY_WEAPONS,                            0,                         200, 0   },
 				{ WP_BAZOOKA,              SK_HEAVY_WEAPONS,                            0,                         4,   0   },
 				{ WP_MORTAR,               SK_HEAVY_WEAPONS,                            0,                         15,  0   },
+				{ WP_M97,                  SK_LIGHT_WEAPONS,                            0,                         12,  6   }, // Jaymod shotgun, all classes
 			},
 			{
 				{ WP_COLT,                 SK_LIGHT_WEAPONS,                            0,                         24,  8   },
@@ -209,6 +218,7 @@ bg_playerclass_t bg_playerClasses[2][NUM_PLAYER_CLASSES] =
 			{
 				{ WP_COLT,                 SK_LIGHT_WEAPONS,                            0,                         24,  8   },
 				{ WP_AKIMBO_COLT,          SK_LIGHT_WEAPONS,                            SK_LIGHT_WEAPONS_AKIMBO,   48,  8   },
+				{ WP_M97,                  SK_LIGHT_WEAPONS,                            0,                         12,  6   }, // Jaymod shotgun, all classes
 			},
 			{ WP_GRENADE_PINEAPPLE,    SK_LIGHT_WEAPONS,                            0,                         1,   0   },
 			{
@@ -230,6 +240,8 @@ bg_playerclass_t bg_playerClasses[2][NUM_PLAYER_CLASSES] =
 			{
 				{ WP_THOMPSON,             SK_LIGHT_WEAPONS,                            0,                         30,  30  },
 				{ WP_CARBINE,              SK_LIGHT_WEAPONS,                            0,                         20,  10  },
+				{ WP_M97,                 SK_LIGHT_WEAPONS,                            0,                         12,  6   }, // Jaymod shotgun, all classes
+
 			},
 			{
 				{ WP_COLT,                 SK_LIGHT_WEAPONS,                            0,                         24,  8   },
@@ -258,6 +270,8 @@ bg_playerclass_t bg_playerClasses[2][NUM_PLAYER_CLASSES] =
 			{ WP_KNIFE_KABAR,          SK_LIGHT_WEAPONS,                            0,                         1,   0   },
 			{
 				{ WP_THOMPSON,             SK_LIGHT_WEAPONS,                            0,                         30,  30  },
+				{ WP_M97,                 SK_LIGHT_WEAPONS,                            0,                         12,  6   }, // Jaymod shotgun, all classes
+
 			},
 			{
 				{ WP_COLT,                 SK_LIGHT_WEAPONS,                            0,                         24,  8   },
@@ -283,6 +297,8 @@ bg_playerclass_t bg_playerClasses[2][NUM_PLAYER_CLASSES] =
 				{ WP_STEN,                 SK_LIGHT_WEAPONS,                            0,                         64,  32  }, // covert-ops start with x2 ammo
 				{ WP_FG42,                 SK_LIGHT_WEAPONS,                            0,                         40,  20  },
 				{ WP_GARAND,               SK_MILITARY_INTELLIGENCE_AND_SCOPED_WEAPONS, 0,                         20,  10  },
+				{ WP_M97,                 SK_LIGHT_WEAPONS,                            0,                         12,  6   }, // Jaymod shotgun, all classes
+
 			},
 			{
 				{ WP_SILENCED_COLT,        SK_LIGHT_WEAPONS,                            0,                         24,  8   },
@@ -299,7 +315,7 @@ bg_playerclass_t bg_playerClasses[2][NUM_PLAYER_CLASSES] =
 			0,
 			0,
 		},
-	},
+	}
 };
 
 /**

@@ -2591,8 +2591,9 @@ static void TVG_RegisterWeaponConstants(lua_vm_t *vm)
 	lua_regconstinteger(vm->L, WP_TRIPMINE);             // 56
 	lua_regconstinteger(vm->L, WP_POISON_SYRINGE);       // 57
 	lua_regconstinteger(vm->L, WP_BOMB);                 // 58
-	lua_regconstinteger(vm->L, WP_POISON_BOMB);          // 60
 	lua_regconstinteger(vm->L, WP_POISON_MINE);          // 59
+	lua_regconstinteger(vm->L, WP_POISON_BOMB);          // 60
+	lua_regconstinteger(vm->L, WP_M97);                  // 61
 	lua_regconstinteger(vm->L, WP_NUM_WEAPONS);
 }
 
@@ -2693,6 +2694,7 @@ static void TVG_RegisterModConstants(lua_vm_t *vm)
 	lua_regconstinteger(vm->L, MOD_BOMB);
 	lua_regconstinteger(vm->L, MOD_POISON_MINE);
 	lua_regconstinteger(vm->L, MOD_POISON_BOMB);
+	lua_regconstinteger(vm->L, MOD_M97);
 	lua_regconstinteger(vm->L, MOD_NUM_MODS);
 }
 

@@ -2352,6 +2352,14 @@ void CG_EntityEvent(centity_t *cent, vec3_t position)
 	case EV_SPINUP:
 		trap_S_StartSound(NULL, es->number, CHAN_AUTO, cg_weapons[es->weapon].spinupSound);
 		break;
+	case EV_M97_PUMP:
+				// Jaymod - the reload "fast" sound slot holds the shell + pump sound
+			if (cg_weapons[es->weapon].reloadFastSound)
+			 {
+			trap_S_StartSoundEx(NULL, es->number, CHAN_WEAPON, cg_weapons[es->weapon].reloadFastSound, SND_PAUSABLE);
+			}
+		 break;
+
 	case EV_FILL_CLIP:
 		// IS_VALID_WEAPON(es->weapon) ?
 		if (BG_IsSkillAvailable(cgs.clientinfo[clientNum].skill, SK_LIGHT_WEAPONS, SK_LIGHT_WEAPONS_FASTER_RELOAD) && (GetWeaponTableData(es->weapon)->attributes & WEAPON_ATTRIBUT_FAST_RELOAD) && cg_weapons[es->weapon].reloadFastSound)

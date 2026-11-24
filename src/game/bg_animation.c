@@ -146,6 +146,12 @@ animStringItem_t animEventTypesStr[] =
 	{ "RELOADPRONE",                -1 },
 	{ "NOPOWER",                    -1 },
 	{ "ACTIVATE",                   -1 },
+	{ "RELOAD_SG_BEGIN",            -1 },
+	{ "RELOAD_SG_LOOP",             -1 },
+	{ "RELOAD_SG_END",              -1 },
+	{ "RELOADPRONE_SG_BEGIN",       -1 },
+	{ "RELOADPRONE_SG_LOOP",        -1 },
+	{ "RELOADPRONE_SG_END",         -1 },
 
 	{ NULL,                         -1 },
 };
