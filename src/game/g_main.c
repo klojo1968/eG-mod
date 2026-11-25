@@ -950,6 +950,15 @@ void G_CheckForCursorHints(gentity_t *ent)
 					{
 						hintType = HINT_DISARM;
 						hintVal  = checkEnt->health;            // also send health to client for visualization
+						
+						// an armed tripmine keeps its real hit points in health, the defusing progress is in count
+						// (see G_DisarmTripmine), so that's what the progress bar has to show
+						if (checkEnt->methodOfDeath == MOD_TRIPMINE && !G_LandmineUnarmed(checkEnt))
+						 {
+							hintVal = checkEnt->count;
+						}
+						
+
 						if (hintVal > 255)
 						{
 							hintVal = 255;

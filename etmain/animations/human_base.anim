@@ -245,6 +245,14 @@ animgroup
 		prone_rifle_reload		4532	12	0	12		0	0	0	20 // @TODO improve
 		prone_rifle_idle		4528	1	0	20		0	0	0	0
 
+		// Jaymod - shotgun reload animations (re-use the rifle reload frames)
+		reload_sg_start			2659	42	0	30		0	0	0	20
+		reload_sg_loop			2659	22	0	34		0	0	0	20
+		reload_sg_end			2680	22	0	34		0	0	0	20
+		prone_sg_reload_start	4532	40	0	20		0	0	0	20
+		prone_sg_reload_loop	4532	18	0	24		0	0	0	20
+		prone_sg_reload_end		4550	22	0	20		0	0	0	20
+
 		// Prone Machine Gun
 		prone_mg_switch			4590	3	0	200		0	0	0	20
 		prone_mg_fire			4594	3	-1	20		0	0	0	20

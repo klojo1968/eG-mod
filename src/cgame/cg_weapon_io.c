@@ -193,7 +193,7 @@ static qboolean CG_ParseWeaponConfig(const char *filename, weaponInfo_t *wi)
 
 			if (atoi(token))
 			{
-				wi->weapAnimations[i].moveSpeed |= (1 << W_MAX_PARTS);      // set the bit one higher than can be set by the barrel bits
+				wi->weapAnimations[i].moveSpeed |= (1 << 7);      // animated weapon flag, bit 7 (kept fixed: W_MAX_PARTS grew to 8 and bit 8 is the hide bit of part 0)
 
 			}
 
@@ -1268,12 +1268,12 @@ static qboolean CG_RW_ParseClient(int handle, weaponInfo_t *weaponInfo)
 		}
 
 		if (!Q_stricmp(token.string, "scaleFirstPerson"))
-			 {
+		{
 			if (!PC_Float_Parse(handle, &weaponInfo->scaleFirstPerson))
-				 {
+			{
 				return CG_RW_ParseError(handle, "expected scaleFirstPerson value");
-				}
-			 }
+			}
+		}
 		else if (!Q_stricmp(token.string, "standModel"))
 		{
 			if (!PC_String_ParseNoAlloc(handle, filename, sizeof(filename)))

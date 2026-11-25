@@ -2868,3 +2868,52 @@ undo_alt_weapon_mode_prone
 //		}
 // }
 //STATECHANGES
+
+// Jaymod - M97 shotgun reload events
+reloadprone_sg_begin
+{
+	weapons M97
+	{
+		torso prone_sg_reload_start
+	}
+}
+
+reloadprone_sg_loop
+{
+	weapons M97
+	{
+		torso prone_sg_reload_loop
+	}
+}
+
+reloadprone_sg_end
+{
+	weapons M97
+	{
+		torso prone_sg_reload_end
+	}
+}
+
+reload_sg_begin
+{
+	weapons M97
+	{
+		torso reload_sg_start
+	}
+}
+
+reload_sg_loop
+{
+	weapons M97
+	{
+		torso reload_sg_loop
+	}
+}
+
+reload_sg_end
+{
+	weapons M97
+	{
+		torso reload_sg_end
+	}
+}
