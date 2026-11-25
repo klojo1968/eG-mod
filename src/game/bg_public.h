@@ -1919,6 +1919,7 @@ typedef enum extWeaponStats_e
 	WS_SYRINGE,        ///< 27
 	WS_TRIPMINE,       ///< 28   -- Engineer tripmine 
 	WS_POISON_MINE,    ///< 29   -- Engineer poison mine (its gas kills are not counted as landmine kills)
+	WS_M97,            ///< 30   -- Winchester M97 shotgun (Jaymod)
 
 	WS_MAX
 } extWeaponStats_t;

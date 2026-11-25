@@ -3945,6 +3945,11 @@ gentity_t * Weapon_M97(gentity_t * ent)
 	int    i;
 	vec3_t end;
 	float  spread = GetWeaponTableData(ent->s.weapon)->spread;
+	int    hitsBefore;
+
+	// Jaymod - a shot counts as a single hit no matter how many pellets connect,
+	// otherwise the accuracy could exceed 100% (every pellet is a separate trace)
+	hitsBefore = ent->client->sess.aWeaponStats[WS_M97].hits;
 
 	G_HistoricalTraceBegin(ent);
 
@@ -3965,6 +3970,11 @@ gentity_t * Weapon_M97(gentity_t * ent)
 	// ok let the bodies be traced again
 	G_ResetTempTraceIgnoreEnts();
 	G_HistoricalTraceEnd(ent);
+
+	if (ent->client->sess.aWeaponStats[WS_M97].hits > hitsBefore)
+	{
+		ent->client->sess.aWeaponStats[WS_M97].hits = hitsBefore + 1;
+	}
 
 	return NULL;
 }
