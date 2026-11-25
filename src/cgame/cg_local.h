@@ -735,6 +735,7 @@ typedef enum
 	W_PART_5,
 	W_PART_6,
 	W_PART_7,
+	W_PART_8,   ///< Jaymod - the M97 uses 8 parts
 	W_MAX_PARTS
 } barrelType_t;
 

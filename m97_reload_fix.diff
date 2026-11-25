@@ -1,0 +1,18 @@
+diff --git a/src/game/bg_pmove.c b/src/game/bg_pmove.c
+index 35ed731f0..39669a5be 100644
+--- a/src/game/bg_pmove.c
++++ b/src/game/bg_pmove.c
+@@ -3900,6 +3900,13 @@ static void PM_Weapon(void)
+ 	{
+ 	case WEAPON_RELOADING:
+ 		PM_FinishWeaponReload();
++
++		// Jaymod - the shotgun reload continues shell by shell. Don't fall through to the
++		// "fire button not pressed" check below, it would force WEAPON_READY and clear weaponTime
++		if (pm->ps->weapon == WP_M97 && pm->ps->weaponstate == WEAPON_RELOADING)
++		{
++			return;
++		}
+ 		break;
+ 	case WEAPON_DROPPING:
+ 	case WEAPON_DROPPING_TORELOAD:

@@ -1,0 +1,581 @@
+diff --git a/etmain/animations/human_base.anim b/etmain/animations/human_base.anim
+index 0179f2769..b6cad411e 100644
+--- a/etmain/animations/human_base.anim
++++ b/etmain/animations/human_base.anim
+@@ -245,6 +245,14 @@ animgroup
+ 		prone_rifle_reload		4532	12	0	12		0	0	0	20 // @TODO improve
+ 		prone_rifle_idle		4528	1	0	20		0	0	0	0
+ 
++		// Jaymod - shotgun reload animations (re-use the rifle reload frames)
++		reload_sg_start			2659	42	0	30		0	0	0	20
++		reload_sg_loop			2659	22	0	34		0	0	0	20
++		reload_sg_end			2680	22	0	34		0	0	0	20
++		prone_sg_reload_start	4532	40	0	20		0	0	0	20
++		prone_sg_reload_loop	4532	18	0	24		0	0	0	20
++		prone_sg_reload_end		4550	22	0	20		0	0	0	20
++
+ 		// Prone Machine Gun
+ 		prone_mg_switch			4590	3	0	200		0	0	0	20
+ 		prone_mg_fire			4594	3	-1	20		0	0	0	20
+diff --git a/etmain/animations/scripts/human_base.script b/etmain/animations/scripts/human_base.script
+index 7f1b73993..bf4b8bf7d 100644
+--- a/etmain/animations/scripts/human_base.script
++++ b/etmain/animations/scripts/human_base.script
+@@ -2868,3 +2868,52 @@ undo_alt_weapon_mode_prone
+ //		}
+ // }
+ //STATECHANGES
++
++// Jaymod - M97 shotgun reload events
++reloadprone_sg_begin
++{
++	weapons M97
++	{
++		torso prone_sg_reload_start
++	}
++}
++
++reloadprone_sg_loop
++{
++	weapons M97
++	{
++		torso prone_sg_reload_loop
++	}
++}
++
++reloadprone_sg_end
++{
++	weapons M97
++	{
++		torso prone_sg_reload_end
++	}
++}
++
++reload_sg_begin
++{
++	weapons M97
++	{
++		torso reload_sg_start
++	}
++}
++
++reload_sg_loop
++{
++	weapons M97
++	{
++		torso reload_sg_loop
++	}
++}
++
++reload_sg_end
++{
++	weapons M97
++	{
++		torso reload_sg_end
++	}
++}
+diff --git a/etmain/weapons/m97.weap b/etmain/weapons/m97.weap
+index 48f959227..be2b83773 100644
+--- a/etmain/weapons/m97.weap
++++ b/etmain/weapons/m97.weap
+@@ -1,79 +1,136 @@
+ weaponDef
+ {
++	// This basically fills out weaponInfo_t
+ 	client {
+-		scaleFirstPerson .85
+-		standModel		"models/weapons2/m97/m97_3rd.md3"
+-		pickupModel		"models/weapons2/m97/m97_pickup.md3"
+-		
++		scaleFirstPerson	.85
++		standModel			"models/weapons2/m97/m97_3rd.md3"	// weapon pickup 'stand' (do we still use this?)
++		pickupModel			"models/weapons2/m97/m97_pickup.md3"
++		//pickupSound		"sound/misc/w_pkup.wav"
++
+ 		weaponConfig		"models/weapons2/m97/weapon.cfg"
+-		handsModel		"models/weapons2/m97/v_m97_hand.md3"
+-		
++		handsModel			"models/weapons2/m97/v_m97_hand.md3"
++
+ 		flashDlightColor	1.0 0.6 0.23
+-		flashSound			"sound/weapons/m97/shotgun_fire.wav"
+-		flashEchoSound		"sound/weapons/m97/shotgun_far.wav"
+-		lastShotSound		"sound/weapons/m97/shotgun_fire_last.wav"
+-		
++		flashSound			"sound/weapons/m97/shotgun_fire.wav"		// supports up to 4 flash sounds
++		flashEchoSound		"sound/weapons/m97/shotgun_far.wav"		// supports up to 4 flash echo sounds
++		lastShotSound		"sound/weapons/m97/shotgun_fire_last.wav"										// supports up to 4 last shot sounds
++
++		//readySound		""
++		//firingSound		""									// no weapons seem to use this, basically it's a replacement hum for readysound, but then when firing
++		//overheatSound		""
+ 		reloadSound			"sound/weapons/m97/shotgun_reload.wav"
+-		reloadFastSound		"sound/weapons/m97/shotgun_reloadpump.wav"	// reload shell and pump
+-		
++		reloadFastSound		"sound/weapons/m97/shotgun_reloadpump.wav"		// some weapons have fast reloads due to the skill system
++		//spinupSound		""									// sound started when fire button goes down, and stepped on when the first fire event happens
++		//spindownSound		""									// sound called if the above is running but player doesn't follow through and fire
++		//switchSound		""									// allow overriding of weaponswitch sound
++		noAmmoSound         "sound/weapons/misc/fire_dry.wav"
++
++		weaponIcon			"models/weapons2/m97/icon.tga"
++		weaponIconScale		2
+ 		weaponSelectedIcon	"models/weapons2/m97/icon.tga"
+-		
+-		ejectBrassFunc		"MachineGunEjectBrass"
+-	
++		weaponSimpleIcon	"simpleicons/thompson"
++		weaponSimpleIconScale 2 1
++
++		weaponCardIcon      "models/weapons2/m97/card.tga"
++		weaponCardScale     1 1
++		weaponCardPointS    0 1
++		weaponCardPointT    0 1
++
++		//missileModel		""
++		//missileSound		""
++		//missileTrailFunc	""									// supports "GrenadeTrail", "RocketTrail", "PyroSmokeTrail" and "DynamiteTrail" (we REALLY want a particle system for this)
++		//missileDlight		0
++		//missileDlightColor	0 0 0							// do we still use this?
++
++		ejectBrassFunc		"MachineGunEjectBrass"				// supports "MachineGunEjectBrass" and "PanzerFaustEjectBrass"
++
++		fireRecoil 2 1 0    // kick angle
++		adjustLean 1 1 1
++
++		impactDurationCoeff 1
++		impactMarkMaxRange  384	// -1 infinite
++		impactParticle    "particles/bullet.particle"
++		impactSoundVolume 64
++		impactMarkRadius  1.5
++		// each surface supports up to 5 hits sounds. available surface : default, far, wood, metal, roof, gravel, glass, snow, water, flesh
++		impactSound {
++			default 5 "sound/weapons/impact/stone"
++			wood    5 "sound/weapons/impact/wood"
++			metal   5 "sound/weapons/impact/metal"
++			roof    5 "sound/weapons/impact/metal"
++			glass   5 "sound/weapons/impact/glass"
++			water   5 "sound/weapons/impact/water"
++			//flesh   5 "sound/weapons/impact/flesh"    // terrible sounds, stonehit is used instead
++		}
++		// each surface supports up to 1 marks shader. available surface : default, far, wood, metal, roof, gravel, glass, snow, water, flesh
++		impactMark {
++			default "gfx/damage/bullet_mrk"
++			wood    "gfx/damage/wood_mrk"
++			metal   "gfx/damage/metal_mrk"
++			glass   "gfx/damage/glass_mrk"
++		}
++
++		//modModel 1		""
++
+ 		firstPerson {
+-			model		"models/weapons2/m97/v_m97.md3"
+-			flashModel	"models/weapons2/mp40/v_mp40_flash.mdc"
++			model			"models/weapons2/m97/v_m97.md3"
++			flashModel		"models/weapons2/mp40/v_mp40_flash.mdc"
++			flashScale 0.5
+ 
++			// weapon building
+ 			weaponLink
+-			{				
++			{
+ 				part 0
+ 				{
+ 					tag		"tag_slide"
+-					model		"models/weapons2/m97/v_m97_slide.md3"					
++					model	"models/weapons2/m97/v_m97_slide.md3"
+ 				}
+ 				part 1
+ 				{
+ 					tag		"tag_carrier"
+-					model		"models/weapons2/m97/v_m97_carrier.md3"
++					model	"models/weapons2/m97/v_m97_carrier.md3"
+ 				}
+ 				part 2
+ 				{
+ 					tag		"tag_shell"
+-					model		"models/weapons2/m97/v_m97_shell.md3"
++					model	"models/weapons2/m97/v_m97_shell.md3"
+ 				}
+ 				part 3
+ 				{
+ 					tag		"tag_bolt"
+-					model		"models/weapons2/m97/v_m97_bolt.md3"
++					model	"models/weapons2/m97/v_m97_bolt.md3"
+ 				}
+ 				part 4
+ 				{
+ 					tag		"tag_hammer"
+-					model		"models/weapons2/m97/v_m97_hammer.md3"
++					model	"models/weapons2/m97/v_m97_hammer.md3"
+ 				}
+ 				part 5
+ 				{
+ 					tag		"tag_sleeve"
+-					model		"models/weapons2/m97/v_m97_sleeve.md3"
++					model	"models/weapons2/m97/v_m97_sleeve.md3"
+ 				}
+ 				part 6
+ 				{
+ 					tag		"tag_shell2"
+-					model		"models/weapons2/m97/v_m97_shell2.md3"
++					model	"models/weapons2/m97/v_m97_shell2.md3"
+ 				}
+ 				part 7
+ 				{
+ 					tag		"tag_arm"
+-					model		"models/weapons2/m97/v_m97_larm.md3"
++					model	"models/weapons2/m97/v_m97_larm.md3"
+ 					axisskin	"models/weapons2/m97/m97_axis.skin"
+ 					alliedskin	"models/weapons2/m97/m97_allied.skin"
+ 				}
+ 			}
+ 		}
+-		
++
+ 		thirdPerson {
+-			model		"models/weapons2/m97/m97_3rd.md3"
+-			flashmodel	"models/weapons2/mp40/v_mp40_flash.mdc"
++			model			"models/weapons2/m97/m97_3rd.md3"
++			flashModel		"models/weapons2/mp40/mp40_flash.mdc"
++			flashScale 0.9
++
++			ejectBrassOffset	16 -4 24
+ 		}
+ 	}
+ }
+diff --git a/src/cgame/cg_local.h b/src/cgame/cg_local.h
+index 17fbf7485..30e2b55c5 100644
+--- a/src/cgame/cg_local.h
++++ b/src/cgame/cg_local.h
+@@ -735,6 +735,7 @@ typedef enum
+ 	W_PART_5,
+ 	W_PART_6,
+ 	W_PART_7,
++	W_PART_8,   ///< Jaymod - the M97 uses 8 parts
+ 	W_MAX_PARTS
+ } barrelType_t;
+ 
+diff --git a/src/cgame/cg_weapon_io.c b/src/cgame/cg_weapon_io.c
+index ac54b19ea..cac4bd22b 100644
+--- a/src/cgame/cg_weapon_io.c
++++ b/src/cgame/cg_weapon_io.c
+@@ -193,7 +193,7 @@ static qboolean CG_ParseWeaponConfig(const char *filename, weaponInfo_t *wi)
+ 
+ 			if (atoi(token))
+ 			{
+-				wi->weapAnimations[i].moveSpeed |= (1 << W_MAX_PARTS);      // set the bit one higher than can be set by the barrel bits
++				wi->weapAnimations[i].moveSpeed |= (1 << 7);      // animated weapon flag, bit 7 (kept fixed: W_MAX_PARTS grew to 8 and bit 8 is the hide bit of part 0)
+ 
+ 			}
+ 
+@@ -1268,12 +1268,12 @@ static qboolean CG_RW_ParseClient(int handle, weaponInfo_t *weaponInfo)
+ 		}
+ 
+ 		if (!Q_stricmp(token.string, "scaleFirstPerson"))
+-			 {
++		{
+ 			if (!PC_Float_Parse(handle, &weaponInfo->scaleFirstPerson))
+-				 {
++			{
+ 				return CG_RW_ParseError(handle, "expected scaleFirstPerson value");
+-				}
+-			 }
++			}
++		}
+ 		else if (!Q_stricmp(token.string, "standModel"))
+ 		{
+ 			if (!PC_String_ParseNoAlloc(handle, filename, sizeof(filename)))
+diff --git a/src/game/bg_pmove.c b/src/game/bg_pmove.c
+index a43666c1d..35ed731f0 100644
+--- a/src/game/bg_pmove.c
++++ b/src/game/bg_pmove.c
+@@ -2570,7 +2570,6 @@ static void PM_WaterEvents(void)
+ static void PM_BeginM97Reload(void);
+ static void PM_M97Reload(void);
+ 
+-
+ /**
+  * @brief PM_BeginWeaponReload
+  * @param weapon
+@@ -2622,12 +2621,10 @@ static void PM_BeginWeaponReload(weapon_t weapon)
+ 
+ 	// Jaymod - the shotgun is loaded shell by shell and has its own reload sequence
+ 	if (weapon == WP_M97)
+-		{
+-			PM_BeginM97Reload();
+-			return;
+-		}
+-	
+-
++	{
++		PM_BeginM97Reload();
++		return;
++	}
+ 
+ 	// easier check now that the animation system handles the specifics
+ 	if (!(GetWeaponTableData(weapon)->firingMode & WEAPON_FIRING_MODE_THROWABLE))
+@@ -2933,7 +2930,6 @@ static void PM_ReloadClip(weapon_t weapon)
+ 		ammomove = 1;
+ 	}
+ 
+-
+ 	if (ammoreserve < ammomove)
+ 	{
+ 		ammomove = ammoreserve;
+@@ -2960,130 +2956,146 @@ static void PM_ReloadClip(weapon_t weapon)
+  * Further shells are loaded from PM_M97Reload once weaponTime expires.
+  */
+ static void PM_BeginM97Reload(void)
+- {
++{
+ 	int anim;
+-	
+-		if (!pm->ps->ammoclip[GetWeaponTableData(WP_M97)->clipIndex])
+-		 {
++
++	if (!pm->ps->ammoclip[GetWeaponTableData(WP_M97)->clipIndex])
++	{
+ 		anim = WEAP_ALTSWITCHFROM;
+-		pm->ps->weaponTime += M97_RLT_ALTSWITCHFROM;
++		PM_AddEvent(EV_M97_PUMP);
++		pm->ps->weaponTime    += M97_RLT_ALTSWITCHFROM;
+ 		pm->pmext->m97reloadState = M97_RELOADING_BEGIN_PUMP;
+-		}
+-	 else
+-		 {
++	}
++	else
++	{
+ 		anim = WEAP_RELOAD1;
+-		pm->ps->weaponTime += M97_RLT_RELOAD1;
++		pm->ps->weaponTime    += M97_RLT_RELOAD1;
+ 		pm->pmext->m97reloadState = M97_RELOADING_BEGIN;
+-		}
+-	
+-			// 3rd person
+-		if (pm->ps->eFlags & EF_PRONE)
+-		 {
+-		BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOADPRONE, qfalse);
+-		}
+-	 else
+-		 {
+-		BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOAD, qfalse);
+-		}
+-	
+-		PM_StartWeaponAnim(anim);
+-	
+-			// initialize override
+-		pm->pmext->m97reloadInterrupt = qfalse;
+-	
+-			// set state to reloading
+-		pm->ps->weaponstate = WEAPON_RELOADING;
+ 	}
+ 
++	// 3rd person
++	if (pm->ps->eFlags & EF_PRONE)
++	{
++		BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOADPRONE_SG1, qfalse);
++	}
++	else
++	{
++		BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOAD_SG1, qfalse);
++	}
++
++	PM_StartWeaponAnim(anim);
++
++	// initialize override
++	pm->pmext->m97reloadInterrupt = qfalse;
++
++	// set state to reloading
++	pm->ps->weaponstate = WEAPON_RELOADING;
++}
++
+ /**
+  * @brief PM_M97Reload - Jaymod shotgun reload step, called each time weaponTime expires while reloading
+  */
+ static void PM_M97Reload(void)
+- {
++{
+ 	int ammoIndex = GetWeaponTableData(WP_M97)->ammoIndex;
+ 	int clipIndex = GetWeaponTableData(WP_M97)->clipIndex;
+-	
+-		// transition from shell + pump
+-		if (pm->pmext->m97reloadState == M97_RELOADING_BEGIN_PUMP)
+-		{
+-			// load a shell
+-			PM_ReloadClip(WP_M97);
+ 
+-			// branch depending on if we need another shell or not
+-			if (!pm->ps->ammo[ammoIndex] || pm->pmext->m97reloadInterrupt)
+-			{
+-				// break back to ready position
+-				PM_StartWeaponAnim(WEAP_DROP2);
+-				pm->ps->weaponTime += M97_RLT_DROP2;
+-				pm->ps->weaponstate = WEAPON_READY;
+-				pm->pmext->m97reloadState = M97_READY;
+-			}
++	// transition from shell + pump
++	if (pm->pmext->m97reloadState == M97_RELOADING_BEGIN_PUMP)
++	{
++		// load a shell
++		PM_ReloadClip(WP_M97);
++
++		// branch depending on if we need another shell or not
++		if (!pm->ps->ammo[ammoIndex] || pm->pmext->m97reloadInterrupt)
++		{
++			// break back to ready position
++			PM_StartWeaponAnim(WEAP_DROP2);
++			pm->ps->weaponTime       += M97_RLT_DROP2;
++			pm->ps->weaponstate       = WEAPON_READY;
++			pm->pmext->m97reloadState = M97_READY;
++		}
+ 		else
+-			{
+-						// transition to load another shell
+-				PM_StartWeaponAnim(WEAP_ALTSWITCHTO);
+-				pm->ps->weaponTime += M97_RLT_ALTSWITCHTO;
+-				pm->pmext->m97reloadState = M97_RELOADING_AFTER_PUMP;
+-			}
+-		return;
++		{
++			// transition to load another shell
++			PM_StartWeaponAnim(WEAP_ALTSWITCHTO);
++			pm->ps->weaponTime       += M97_RLT_ALTSWITCHTO;
++			pm->pmext->m97reloadState = M97_RELOADING_AFTER_PUMP;
+ 		}
++		return;
++	}
+ 
+-			// load a shell on most states
+-		if (pm->pmext->m97reloadState != M97_RELOADING_AFTER_PUMP && pm->pmext->m97reloadState != M97_RELOADING_BEGIN)
+-		{
++	// load a shell on most states
++	if (pm->pmext->m97reloadState != M97_RELOADING_AFTER_PUMP && pm->pmext->m97reloadState != M97_RELOADING_BEGIN)
++	{
+ 		PM_ReloadClip(WP_M97);
+-		}
++	}
+ 
+-			// override - but must load at least one shell!
+-		if (pm->pmext->m97reloadInterrupt && pm->pmext->m97reloadState != M97_RELOADING_BEGIN)
++	// override - but must load at least one shell!
++	if (pm->pmext->m97reloadInterrupt && pm->pmext->m97reloadState != M97_RELOADING_BEGIN)
++	{
++		// 3rd person
++		if (pm->ps->eFlags & EF_PRONE)
+ 		{
++			BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOADPRONE_SG3, qfalse);
++		}
++		else
++		{
++			BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOAD_SG3, qfalse);
++		}
+ 		PM_StartWeaponAnim(WEAP_RELOAD3);
+-		pm->ps->weaponTime += M97_RLT_RELOAD3;
+-		pm->ps->weaponstate = WEAPON_READY;
++		pm->ps->weaponTime       += M97_RLT_RELOAD3;
++		pm->ps->weaponstate       = WEAPON_READY;
+ 		pm->pmext->m97reloadState = M97_READY;
+ 		return;
+-		}
++	}
+ 
+-			// if clip isn't full, load another shell
+-		if (pm->ps->ammoclip[clipIndex] < GetWeaponTableData(WP_M97)->maxClip && pm->ps->ammo[ammoIndex])
+-		{
++	// if clip isn't full, load another shell
++	if (pm->ps->ammoclip[clipIndex] < GetWeaponTableData(WP_M97)->maxClip && pm->ps->ammo[ammoIndex])
++	{
+ 		PM_AddEvent(EV_FILL_CLIP);
+ 		PM_StartWeaponAnim(WEAP_RELOAD2);
+-		
+-				// delay time - support quick reload
+-			if (BG_IsSkillAvailable(pm->skill, SK_LIGHT_WEAPONS, SK_LIGHT_WEAPONS_FASTER_RELOAD))
+-			{
+-				pm->ps->weaponTime += M97_RLT_RELOAD2_QUICK;
+-			}
+-			else
+-			{
+-				pm->ps->weaponTime += M97_RLT_RELOAD2;
+-			}
+-		
+-			pm->pmext->m97reloadState = M97_RELOADING_LOOP;
+-		
+-				// 3rd person
+-			if (pm->ps->eFlags & EF_PRONE)
+-			{
+-				BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOADPRONE, qfalse);
+-			}
+-			else
+-			{
+-				BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOAD, qfalse);
+-			}
++
++		// delay time - support quick reload
++		if (BG_IsSkillAvailable(pm->skill, SK_LIGHT_WEAPONS, SK_LIGHT_WEAPONS_FASTER_RELOAD))
++		{
++			pm->ps->weaponTime += M97_RLT_RELOAD2_QUICK;
+ 		}
+ 		else
+ 		{
+-				// from loop to ready
+-			PM_StartWeaponAnim(WEAP_RELOAD3);
+-			pm->ps->weaponTime += M97_RLT_RELOAD3;
+-			pm->ps->weaponstate = WEAPON_READY;
+-			pm->pmext->m97reloadState = M97_READY;
++			pm->ps->weaponTime += M97_RLT_RELOAD2;
+ 		}
+-}
+-
+ 
++		pm->pmext->m97reloadState = M97_RELOADING_LOOP;
+ 
++		// 3rd person
++		if (pm->ps->eFlags & EF_PRONE)
++		{
++			BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOADPRONE_SG2, qfalse);
++		}
++		else
++		{
++			BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOAD_SG2, qfalse);
++		}
++	}
++	else
++	{
++		// from loop to ready
++		// 3rd person
++		if (pm->ps->eFlags & EF_PRONE)
++		{
++			BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOADPRONE_SG3, qfalse);
++		}
++		else
++		{
++			BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOAD_SG3, qfalse);
++		}
++		PM_StartWeaponAnim(WEAP_RELOAD3);
++		pm->ps->weaponTime       += M97_RLT_RELOAD3;
++		pm->ps->weaponstate       = WEAPON_READY;
++		pm->pmext->m97reloadState = M97_READY;
++	}
++}
+ 
+ /**
+  * @brief PM_FinishWeaponReload
+@@ -3096,8 +3108,6 @@ static void PM_FinishWeaponReload(void)
+ 		PM_M97Reload();
+ 		return;
+ 	}
+-	
+-
+ 
+ 	PM_ReloadClip(pm->ps->weapon);            // move ammo into clip
+ 	pm->ps->weaponstate = WEAPON_READY;     // ready to fire
+@@ -3136,7 +3146,6 @@ void PM_CheckForReload(weapon_t weapon)
+ 		return;
+ 	}
+ 
+-
+ 	if (pm->ps->weaponstate != WEAPON_READY && pm->ps->weaponstate != WEAPON_FIRING)
+ 	{
+ 		return;

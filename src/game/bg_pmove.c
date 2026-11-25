@@ -2570,7 +2570,6 @@ static void PM_WaterEvents(void)
 static void PM_BeginM97Reload(void);
 static void PM_M97Reload(void);
 
-
 /**
  * @brief PM_BeginWeaponReload
  * @param weapon
@@ -2622,12 +2621,10 @@ static void PM_BeginWeaponReload(weapon_t weapon)
 
 	// Jaymod - the shotgun is loaded shell by shell and has its own reload sequence
 	if (weapon == WP_M97)
-		{
-			PM_BeginM97Reload();
-			return;
-		}
-	
-
+	{
+		PM_BeginM97Reload();
+		return;
+	}
 
 	// easier check now that the animation system handles the specifics
 	if (!(GetWeaponTableData(weapon)->firingMode & WEAPON_FIRING_MODE_THROWABLE))
@@ -2933,7 +2930,6 @@ static void PM_ReloadClip(weapon_t weapon)
 		ammomove = 1;
 	}
 
-
 	if (ammoreserve < ammomove)
 	{
 		ammomove = ammoreserve;
@@ -2960,130 +2956,146 @@ static void PM_ReloadClip(weapon_t weapon)
  * Further shells are loaded from PM_M97Reload once weaponTime expires.
  */
 static void PM_BeginM97Reload(void)
- {
+{
 	int anim;
-	
-		if (!pm->ps->ammoclip[GetWeaponTableData(WP_M97)->clipIndex])
-		 {
+
+	if (!pm->ps->ammoclip[GetWeaponTableData(WP_M97)->clipIndex])
+	{
 		anim = WEAP_ALTSWITCHFROM;
-		pm->ps->weaponTime += M97_RLT_ALTSWITCHFROM;
+		PM_AddEvent(EV_M97_PUMP);
+		pm->ps->weaponTime    += M97_RLT_ALTSWITCHFROM;
 		pm->pmext->m97reloadState = M97_RELOADING_BEGIN_PUMP;
-		}
-	 else
-		 {
-		anim = WEAP_RELOAD1;
-		pm->ps->weaponTime += M97_RLT_RELOAD1;
-		pm->pmext->m97reloadState = M97_RELOADING_BEGIN;
-		}
-	
-			// 3rd person
-		if (pm->ps->eFlags & EF_PRONE)
-		 {
-		BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOADPRONE, qfalse);
-		}
-	 else
-		 {
-		BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOAD, qfalse);
-		}
-	
-		PM_StartWeaponAnim(anim);
-	
-			// initialize override
-		pm->pmext->m97reloadInterrupt = qfalse;
-	
-			// set state to reloading
-		pm->ps->weaponstate = WEAPON_RELOADING;
 	}
+	else
+	{
+		anim = WEAP_RELOAD1;
+		pm->ps->weaponTime    += M97_RLT_RELOAD1;
+		pm->pmext->m97reloadState = M97_RELOADING_BEGIN;
+	}
+
+	// 3rd person
+	if (pm->ps->eFlags & EF_PRONE)
+	{
+		BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOADPRONE_SG1, qfalse);
+	}
+	else
+	{
+		BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOAD_SG1, qfalse);
+	}
+
+	PM_StartWeaponAnim(anim);
+
+	// initialize override
+	pm->pmext->m97reloadInterrupt = qfalse;
+
+	// set state to reloading
+	pm->ps->weaponstate = WEAPON_RELOADING;
+}
 
 /**
  * @brief PM_M97Reload - Jaymod shotgun reload step, called each time weaponTime expires while reloading
  */
 static void PM_M97Reload(void)
- {
+{
 	int ammoIndex = GetWeaponTableData(WP_M97)->ammoIndex;
 	int clipIndex = GetWeaponTableData(WP_M97)->clipIndex;
-	
-		// transition from shell + pump
-		if (pm->pmext->m97reloadState == M97_RELOADING_BEGIN_PUMP)
-		{
-			// load a shell
-			PM_ReloadClip(WP_M97);
 
-			// branch depending on if we need another shell or not
-			if (!pm->ps->ammo[ammoIndex] || pm->pmext->m97reloadInterrupt)
-			{
-				// break back to ready position
-				PM_StartWeaponAnim(WEAP_DROP2);
-				pm->ps->weaponTime += M97_RLT_DROP2;
-				pm->ps->weaponstate = WEAPON_READY;
-				pm->pmext->m97reloadState = M97_READY;
-			}
-		else
-			{
-						// transition to load another shell
-				PM_StartWeaponAnim(WEAP_ALTSWITCHTO);
-				pm->ps->weaponTime += M97_RLT_ALTSWITCHTO;
-				pm->pmext->m97reloadState = M97_RELOADING_AFTER_PUMP;
-			}
-		return;
-		}
-
-			// load a shell on most states
-		if (pm->pmext->m97reloadState != M97_RELOADING_AFTER_PUMP && pm->pmext->m97reloadState != M97_RELOADING_BEGIN)
-		{
+	// transition from shell + pump
+	if (pm->pmext->m97reloadState == M97_RELOADING_BEGIN_PUMP)
+	{
+		// load a shell
 		PM_ReloadClip(WP_M97);
-		}
 
-			// override - but must load at least one shell!
-		if (pm->pmext->m97reloadInterrupt && pm->pmext->m97reloadState != M97_RELOADING_BEGIN)
+		// branch depending on if we need another shell or not
+		if (!pm->ps->ammo[ammoIndex] || pm->pmext->m97reloadInterrupt)
 		{
-		PM_StartWeaponAnim(WEAP_RELOAD3);
-		pm->ps->weaponTime += M97_RLT_RELOAD3;
-		pm->ps->weaponstate = WEAPON_READY;
-		pm->pmext->m97reloadState = M97_READY;
-		return;
-		}
-
-			// if clip isn't full, load another shell
-		if (pm->ps->ammoclip[clipIndex] < GetWeaponTableData(WP_M97)->maxClip && pm->ps->ammo[ammoIndex])
-		{
-		PM_AddEvent(EV_FILL_CLIP);
-		PM_StartWeaponAnim(WEAP_RELOAD2);
-		
-				// delay time - support quick reload
-			if (BG_IsSkillAvailable(pm->skill, SK_LIGHT_WEAPONS, SK_LIGHT_WEAPONS_FASTER_RELOAD))
-			{
-				pm->ps->weaponTime += M97_RLT_RELOAD2_QUICK;
-			}
-			else
-			{
-				pm->ps->weaponTime += M97_RLT_RELOAD2;
-			}
-		
-			pm->pmext->m97reloadState = M97_RELOADING_LOOP;
-		
-				// 3rd person
-			if (pm->ps->eFlags & EF_PRONE)
-			{
-				BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOADPRONE, qfalse);
-			}
-			else
-			{
-				BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOAD, qfalse);
-			}
-		}
-		else
-		{
-				// from loop to ready
-			PM_StartWeaponAnim(WEAP_RELOAD3);
-			pm->ps->weaponTime += M97_RLT_RELOAD3;
-			pm->ps->weaponstate = WEAPON_READY;
+			// break back to ready position
+			PM_StartWeaponAnim(WEAP_DROP2);
+			pm->ps->weaponTime       += M97_RLT_DROP2;
+			pm->ps->weaponstate       = WEAPON_READY;
 			pm->pmext->m97reloadState = M97_READY;
 		}
+		else
+		{
+			// transition to load another shell
+			PM_StartWeaponAnim(WEAP_ALTSWITCHTO);
+			pm->ps->weaponTime       += M97_RLT_ALTSWITCHTO;
+			pm->pmext->m97reloadState = M97_RELOADING_AFTER_PUMP;
+		}
+		return;
+	}
+
+	// load a shell on most states
+	if (pm->pmext->m97reloadState != M97_RELOADING_AFTER_PUMP && pm->pmext->m97reloadState != M97_RELOADING_BEGIN)
+	{
+		PM_ReloadClip(WP_M97);
+	}
+
+	// override - but must load at least one shell!
+	if (pm->pmext->m97reloadInterrupt && pm->pmext->m97reloadState != M97_RELOADING_BEGIN)
+	{
+		// 3rd person
+		if (pm->ps->eFlags & EF_PRONE)
+		{
+			BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOADPRONE_SG3, qfalse);
+		}
+		else
+		{
+			BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOAD_SG3, qfalse);
+		}
+		PM_StartWeaponAnim(WEAP_RELOAD3);
+		pm->ps->weaponTime       += M97_RLT_RELOAD3;
+		pm->ps->weaponstate       = WEAPON_READY;
+		pm->pmext->m97reloadState = M97_READY;
+		return;
+	}
+
+	// if clip isn't full, load another shell
+	if (pm->ps->ammoclip[clipIndex] < GetWeaponTableData(WP_M97)->maxClip && pm->ps->ammo[ammoIndex])
+	{
+		PM_AddEvent(EV_FILL_CLIP);
+		PM_StartWeaponAnim(WEAP_RELOAD2);
+
+		// delay time - support quick reload
+		if (BG_IsSkillAvailable(pm->skill, SK_LIGHT_WEAPONS, SK_LIGHT_WEAPONS_FASTER_RELOAD))
+		{
+			pm->ps->weaponTime += M97_RLT_RELOAD2_QUICK;
+		}
+		else
+		{
+			pm->ps->weaponTime += M97_RLT_RELOAD2;
+		}
+
+		pm->pmext->m97reloadState = M97_RELOADING_LOOP;
+
+		// 3rd person
+		if (pm->ps->eFlags & EF_PRONE)
+		{
+			BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOADPRONE_SG2, qfalse);
+		}
+		else
+		{
+			BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOAD_SG2, qfalse);
+		}
+	}
+	else
+	{
+		// from loop to ready
+		// 3rd person
+		if (pm->ps->eFlags & EF_PRONE)
+		{
+			BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOADPRONE_SG3, qfalse);
+		}
+		else
+		{
+			BG_AnimScriptEvent(pm->ps, pm->character->animModelInfo, ANIM_ET_RELOAD_SG3, qfalse);
+		}
+		PM_StartWeaponAnim(WEAP_RELOAD3);
+		pm->ps->weaponTime       += M97_RLT_RELOAD3;
+		pm->ps->weaponstate       = WEAPON_READY;
+		pm->pmext->m97reloadState = M97_READY;
+	}
 }
-
-
-
 
 /**
  * @brief PM_FinishWeaponReload
@@ -3096,8 +3108,6 @@ static void PM_FinishWeaponReload(void)
 		PM_M97Reload();
 		return;
 	}
-	
-
 
 	PM_ReloadClip(pm->ps->weapon);            // move ammo into clip
 	pm->ps->weaponstate = WEAPON_READY;     // ready to fire
@@ -3135,7 +3145,6 @@ void PM_CheckForReload(weapon_t weapon)
 		}
 		return;
 	}
-
 
 	if (pm->ps->weaponstate != WEAPON_READY && pm->ps->weaponstate != WEAPON_FIRING)
 	{
@@ -3891,6 +3900,13 @@ static void PM_Weapon(void)
 	{
 	case WEAPON_RELOADING:
 		PM_FinishWeaponReload();
+
+		// Jaymod - the shotgun reload continues shell by shell. Don't fall through to the
+		// "fire button not pressed" check below, it would force WEAPON_READY and clear weaponTime
+		if (pm->ps->weapon == WP_M97 && pm->ps->weaponstate == WEAPON_RELOADING)
+		{
+			return;
+		}
 		break;
 	case WEAPON_DROPPING:
 	case WEAPON_DROPPING_TORELOAD:
