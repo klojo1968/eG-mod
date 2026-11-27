@@ -85,16 +85,16 @@ jobs:
         with:
           name: lnx64-mod
           path: |
-            build/legacy/cgame*.so
-            build/legacy/ui*.so
-            build/legacy/qagame*.so
-            build/legacy/tvgame*.so
+            build/eGmod/cgame*.so
+            build/eGmod/ui*.so
+            build/eGmod/qagame*.so
+            build/eGmod/tvgame*.so
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v7
         with:
           name: incomplete-mod-pk3
-          path: build/legacy/legacy_*.pk3
+          path: build/eGmod/legacy_*.pk3
           if-no-files-found: error
 
   lnx32-mod:
@@ -122,10 +122,10 @@ jobs:
         with:
           name: lnx32-mod
           path: |
-            build/legacy/cgame*.so
-            build/legacy/ui*.so
-            build/legacy/qagame*.so
-            build/legacy/tvgame*.so
+            build/eGmod/cgame*.so
+            build/eGmod/ui*.so
+            build/eGmod/qagame*.so
+            build/eGmod/tvgame*.so
           if-no-files-found: error
   
   lnx-aarch64-mod:
@@ -151,10 +151,10 @@ jobs:
         with:
           name: lnx-aarch64-mod
           path: |
-            build/legacy/cgame*.so
-            build/legacy/ui*.so
-            build/legacy/qagame*.so
-            build/legacy/tvgame*.so
+            build/eGmod/cgame*.so
+            build/eGmod/ui*.so
+            build/eGmod/qagame*.so
+            build/eGmod/tvgame*.so
           if-no-files-found: error
 
   osx-mod:
@@ -191,10 +191,10 @@ jobs:
         with:
           name: osx-mod
           path: |
-            build/legacy/cgame_mac
-            build/legacy/ui_mac
-            build/legacy/qagame_mac
-            build/legacy/tvgame_mac
+            build/eGmod/cgame_mac
+            build/eGmod/ui_mac
+            build/eGmod/qagame_mac
+            build/eGmod/tvgame_mac
           if-no-files-found: error
 
   win-mod:
@@ -218,10 +218,10 @@ jobs:
         with:
           name: win-mod
           path: |
-            build/legacy/cgame*.dll
-            build/legacy/ui*.dll
-            build/legacy/qagame*.dll
-            build/legacy/tvgame*.dll
+            build/eGmod/cgame*.dll
+            build/eGmod/ui*.dll
+            build/eGmod/qagame*.dll
+            build/eGmod/tvgame*.dll
           if-no-files-found: error
 
   win64-mod:
@@ -245,10 +245,10 @@ jobs:
         with:
           name: win64-mod
           path: |
-            build/legacy/cgame*.dll
-            build/legacy/ui*.dll
-            build/legacy/qagame*.dll
-            build/legacy/tvgame*.dll
+            build/eGmod/cgame*.dll
+            build/eGmod/ui*.dll
+            build/eGmod/qagame*.dll
+            build/eGmod/tvgame*.dll
           if-no-files-found: error
 
   #   __  __                                                          _
