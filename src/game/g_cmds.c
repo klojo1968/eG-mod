@@ -1388,6 +1388,13 @@ qboolean G_DropItems(gentity_t *self)
 {
 	gitem_t *item = NULL;
 
+	// a following spectator or a limbo player has a copy of the followed player's playerstate
+	// including the flag powerups, but doesn't carry anything
+	if (self->client->sess.sessionTeam == TEAM_SPECTATOR || (self->client->ps.pm_flags & (PMF_FOLLOW | PMF_LIMBO)))
+	{
+		return qfalse;
+	}
+
 	// drop flag regardless
 	if (self->client->ps.powerups[PW_REDFLAG])
 	{
@@ -3490,9 +3497,10 @@ qboolean Cmd_CallVote_f(gentity_t *ent, unsigned int dwCommand, int fRefCommand)
 	{
 		level.voteInfo.voteTime = level.warmupTime - VOTE_TIME;
 	}
-	else if (g_gamestate.integer == GS_PLAYING && (level.startTime + (g_timelimit.value * 60000) - level.time < VOTE_TIME))
+	else if (g_gamestate.integer == GS_PLAYING && g_timelimit.value != 0.f && (level.startTime + level.timeDelta + (g_timelimit.value * 60000) - level.time < VOTE_TIME))
 	{
-		level.voteInfo.voteTime = level.startTime + (g_timelimit.value * 60000) - VOTE_TIME;
+		// timeDelta is the total match pause time, level.time keeps running during a pause
+		level.voteInfo.voteTime = level.startTime + level.timeDelta + (g_timelimit.value * 60000) - VOTE_TIME;
 	}
 	else
 	{

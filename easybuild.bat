@@ -9,9 +9,13 @@
 @setLocal EnableDelayedExpansion
 
 :: variables
-SET game_homepath=%USERPROFILE%\Documents\ETLegacy
-SET game_basepath=%USERPROFILE%\Documents\ETLegacy-Build
-SET modname=legacy
+:: Resolve the real Documents folder (it may be redirected away from %USERPROFILE%)
+for /f "usebackq delims=" %%D in (`powershell -NoProfile -Command "[Environment]::GetFolderPath('MyDocuments')"`) do SET "docs_dir=%%D"
+IF NOT DEFINED docs_dir SET "docs_dir=%USERPROFILE%\Documents"
+SET game_homepath=!docs_dir!\ETLegacy
+SET game_basepath=!docs_dir!\ETLegacy-Build
+:: install folder (fs_game) of the mod; also passed to CMake as MOD_FOLDER
+SET mod_folder=eGmod
 SET build_type=Release
 SET batloc=%~dp0
 SET "batloc=%batloc:\=/%"
@@ -19,14 +23,13 @@ SET build_dir=!batloc!build
 SET project_dir=!batloc!project
 
 SET build_64=0
-SET mod_only=0
+SET mod_only=1
 SET etpub=0
 SET jaymod=0
 SET nq=0
 SET use_autoupdate=1
 SET use_extra=1
 SET build_r2=0
-SET build_vk=0
 SET build_ssl=1
 SET build_auth=1
 SET wolf_ssl=0
@@ -43,10 +46,6 @@ If Defined BUNDLED_WOLFSSL (
 
 If Defined BUNDLED_OPENSSL (
     SET open_ssl=!BUNDLED_OPENSSL!
-)
-
-IF DEFINED VK_SHADER_PREBUILT_DIR (
-	for %%I in ("!VK_SHADER_PREBUILT_DIR!") do set "VK_SHADER_PREBUILT_DIR_ABS=%%~fI"
 )
 
 SET generator=
@@ -74,7 +73,7 @@ IF NOT "%1"=="" (
 		ECHO help - print this help
 		ECHO.
 		ECHO Properties
-		ECHO -64, -debug, -mod, -etpub, -jaymod, -nq, -noextra, -noupdate, -nor2, -vk, -nossl, -generator [generator], -toolset [version] -build_dir [dir]
+		ECHO -64, -debug, -mod, -etpub, -jaymod, -nq, -noextra, -noupdate, -nor2, -nossl, -generator [generator], -toolset [version] -build_dir [dir]
 		ECHO.
 		GOTO:EOF
 	) ELSE IF /I "%1"=="-64" (
@@ -109,10 +108,6 @@ IF NOT "%1"=="" (
 		SET build_r2=0
 	) ELSE IF /I "%1"=="-no-r2" (
 		SET build_r2=0
-	) ELSE IF /I "%1"=="-vk" (
-		SET build_vk=1
-	) ELSE IF /I "%1"=="-vulkan" (
-		SET build_vk=1
 	) ELSE IF /I "%1"=="-generator" (
 		SET generator=%~2
 		SHIFT
@@ -203,13 +198,13 @@ GOTO:EOF
 		mkdir "!game_basepath!"
 	)
 	CD !build_dir!
-	CALL:CLEANPATH "!game_basepath!\%modname%\" "*.pk3 *.dll *.dat"
-	CALL:CLEANPATH "!game_homepath!\%modname%\" "*.pk3 *.dll *.dat"
+	CALL:CLEANPATH "!game_basepath!\%mod_folder%\" "*.pk3 *.dll *.dat"
+	CALL:CLEANPATH "!game_homepath!\%mod_folder%\" "*.pk3 *.dll *.dat"
 	CALL:COPYFROMPATH "%cd%\" "et*.exe renderer_opengl*.dll" "!game_basepath!\"
-	CALL:COPYFROMPATH "%cd%\legacy\" "*.pk3 qagame*.dll *.dat" "!game_basepath!\%modname%\"
+	CALL:COPYFROMPATH "%cd%\legacy\" "*.pk3 qagame*.dll *.dat" "!game_basepath!\%mod_folder%\"
 	CD !batloc!
 	CALL:COPYFROMPATH "%cd%\misc\etmain\" "*" "!game_basepath!\etmain\"
-	CALL:COPYFROMPATH "%cd%\misc\" "description.txt" "!game_basepath!\%modname%\"
+	CALL:COPYFROMPATH "%cd%\misc\" "description.txt" "!game_basepath!\%mod_folder%\"
 	CALL:COPYFROMPATH "%cd%\docs\" "INSTALL.txt" "!game_basepath!"
 	CALL:COPYFROMPATH "%cd%\" "COPYING.txt" "!game_basepath!"
 GOTO:EOF
@@ -277,10 +272,14 @@ GOTO:EOF
 		SET generator_platform=Win32
 	)
 
+	:: Strip a trailing backslash, otherwise "dir\" escapes the closing quote
+	set "source_dir=%~2"
+	IF "!source_dir:~-1!"=="\" SET "source_dir=!source_dir:~0,-1!"
+
 	set build_string=
 	CALL:GENERATECMAKE build_string
-	cmake !generator! !platform_toolset! -A !generator_platform! %build_string% "%~2"
-	ECHO cmake !generator! !platform_toolset! -A !generator_platform! %build_string% "%~2"
+	cmake !generator! !platform_toolset! -A !generator_platform! %build_string% "!source_dir!"
+	ECHO cmake !generator! !platform_toolset! -A !generator_platform! %build_string% "!source_dir!"
 GOTO:EOF
 
 :OPENPROJECT
@@ -349,7 +348,7 @@ GOTO:EOF
 	set SCRIPT="%TEMP%\%RANDOM%-%RANDOM%-%RANDOM%-%RANDOM%.vbs"
 
 	echo Set oWS = WScript.CreateObject("WScript.Shell") >> !SCRIPT!
-	echo sLinkFile = "%USERPROFILE%\Desktop\%~1.lnk" >> !SCRIPT!
+	echo sLinkFile = oWS.SpecialFolders("Desktop") ^& "\%~1.lnk" >> !SCRIPT!
 	echo Set oLink = oWS.CreateShortcut(sLinkFile) >> !SCRIPT!
 	echo oLink.TargetPath = "%~2" >> !SCRIPT!
 	echo oLink.WorkingDirectory = "%~3" >> !SCRIPT!
@@ -417,35 +416,24 @@ GOTO :EOF
 		SET feature_auth=0
 	)
 
-	:: a static build holds only one renderer
-	SET renderer_dynamic=!build_r2!
-	IF !build_vk!==1 (
-		SET renderer_dynamic=1
-	)
-
 	SET local_build_string=-DBUNDLED_LIBS=YES ^
 	-DCMAKE_BUILD_TYPE=!build_type! ^
 	-DFEATURE_AUTOUPDATE=!use_autoupdate! ^
 	-DINSTALL_EXTRA=!use_extra! ^
 	-DCROSS_COMPILE32=!CROSSCOMP! ^
-	-DRENDERER_DYNAMIC=!renderer_dynamic! ^
+	-DRENDERER_DYNAMIC=!build_r2! ^
 	-DFEATURE_RENDERER2=!build_r2! ^
-	-DFEATURE_RENDERER_VULKAN=!build_vk! ^
 	-DBUNDLED_WOLFSSL=!wolf_ssl! ^
 	-DBUNDLED_OPENSSL=!open_ssl! ^
 	-DFEATURE_SSL=!feature_ssl! ^
-	-DFEATURE_AUTH=!feature_auth!
+	-DFEATURE_AUTH=!feature_auth! ^
+	-DMOD_FOLDER=!mod_folder! ^
+	-DETL_HIDE_DEVELOPMENT_BUILD=ON
 
 	IF !mod_only!==1 (
 		SET local_build_string=!local_build_string! ^
 		-DBUILD_CLIENT=0 ^
 		-DBUILD_SERVER=0
-	)
-
-	:: precompiled Vulkan shaders instead of a GLSL compiler (the CI's vk-shaders job)
-	IF DEFINED VK_SHADER_PREBUILT_DIR (
-		SET local_build_string=!local_build_string! ^
-		-DVK_SHADER_PREBUILT_DIR="!VK_SHADER_PREBUILT_DIR_ABS!"
 	)
 
 	IF !etpub!==1 (

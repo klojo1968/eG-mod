@@ -39,15 +39,20 @@ include(cmake/ETLFunctions.cmake)
 # General
 #-----------------------------------------------------------------
 
-set(MODNAME "legacy" CACHE STRING "Default mod name")
+set(MODNAME "eGmod" CACHE STRING "Default mod name")
 set(MODURL "www.etlegacy.com" CACHE STRING "Default mod URL")
+set(MOD_FOLDER "${MODNAME}" CACHE STRING "Folder (fs_game) the mod is installed in; client mod translations are enabled there")
+option(ETL_HIDE_DEVELOPMENT_BUILD "Do not mark non-release (untagged) builds as DEVELOPMENT BUILD" OFF)
+if(ETL_HIDE_DEVELOPMENT_BUILD)
+	add_definitions(-DETL_HIDE_DEVELOPMENT_BUILD)
+endif()
 
 #-----------------------------------------------------------------
 # Options
 #-----------------------------------------------------------------
 
-option(BUILD_SERVER				"Build the dedicated server executable"							ON)
-option(BUILD_CLIENT				"Build the client executable"									ON)
+option(BUILD_SERVER				"Build the dedicated server executable"							OFF)
+option(BUILD_CLIENT				"Build the client executable"									OFF)
 option(BUILD_MOD				"Build the mod libraries"										ON)
 
 option(BUNDLED_LIBS				"Use all available bundled libraries instead of system libs"	ON)
@@ -120,16 +125,6 @@ if(BUILD_CLIENT OR BUILD_SERVER)
 	set(BUILD_ENGINE ON)
 endif()
 
-# Had to move the glsl compiler resolve here so it gets checked before setting the default bundled glslc state
-if(FEATURE_RENDERER_VULKAN AND NOT VK_SHADER_PREBUILT_DIR_ABS)
-	# shader compiler: glslc (shaderc) preferred, glslangValidator works too
-	find_program(VK_GLSL_COMPILER
-		NAMES glslc glslangValidator
-		HINTS "$ENV{VULKAN_SDK}/bin" "$ENV{VULKAN_SDK}/Bin"
-		DOC "GLSL to SPIR-V compiler (glslc or glslangValidator)"
-	)
-endif()
-
 # Will just remove the whole option if the feature is disabled
 LEG_BUNDLED_LIB(SDL SDL "BUILD_CLIENT")
 LEG_BUNDLED_LIB(ZLIB Zlib "BUILD_ENGINE")
@@ -146,9 +141,6 @@ LEG_BUNDLED_LIB(THEORA Theora "BUILD_CLIENT AND FEATURE_THEORA")
 LEG_BUNDLED_LIB(OPENAL OpenAL "BUILD_CLIENT AND FEATURE_OPENAL" "NOT APPLE")
 LEG_BUNDLED_LIB(OPENAL_INCLUDE OpenAL-OSX "BUILD_CLIENT AND FEATURE_OPENAL" "APPLE")
 LEG_BUNDLED_LIB(GLEW Glew "BUILD_CLIENT AND ( FEATURE_RENDERER1 OR FEATURE_RENDERER2 )")
-LEG_BUNDLED_LIB(VULKAN_HEADERS Vulkan-Headers "BUILD_CLIENT AND FEATURE_RENDERER_VULKAN")
-LEG_BUNDLED_LIB(MOLTENVK MoltenVK "BUILD_CLIENT AND FEATURE_RENDERER_VULKAN" "APPLE")
-LEG_BUNDLED_LIB(SHADERC Shaderc "BUILD_CLIENT AND FEATURE_RENDERER_VULKAN" "NOT VK_GLSL_COMPILER AND NOT VK_SHADER_PREBUILT_DIR")
 LEG_BUNDLED_LIB(FREETYPE Freetype2 "BUILD_CLIENT AND FEATURE_FREETYPE")
 LEG_BUNDLED_LIB(SQLITE3 SQlite3 "BUILD_CLIENT OR BUILD_MOD")
 LEG_BUNDLED_LIB(CJSON cJSON "BUILD_ENGINE OR BUILD_MOD")

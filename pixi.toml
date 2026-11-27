@@ -10,7 +10,6 @@ platforms = ["linux-64", "osx-64", "win-64"]
 
 [tasks]
 "collect-and-check-gh-build-logs" = { cmd = ["python", "./misc/collect-and-check-gh-build-logs.py"] }
-"dist-manifest-check" = { cmd = ["python", "./misc/dist-manifest.py", "check", "./dist", "--manifest", "./dist-manifest.json"] }
 "i18n-sync-pot-files" = { cmd = ["python", "./misc/i18n-sync-pot-files.py"] }
 "i18n-transifex-pull" = { cmd = ["python", "./misc/i18n-transifex-wrapper.py", "pull", "--force"] }
 
@@ -38,7 +37,6 @@ check-changes = { cmd = ["python", "./misc/check-changes.py"] }
 "go-shfmt" = "3.12.0.*"
 "prettier" = "3.5.3.*"
 "shellcheck" = "0.10.0.*"
-"tombi" = "1.9.8.*"
 "uncrustify" = "0.78.1.*"
 
 # -- updatechangelogs
@@ -48,15 +46,7 @@ check-changes = { cmd = ["python", "./misc/check-changes.py"] }
 [feature.updatechangelogs.dependencies]
 "go" = "1.26.0.*"
 
-# -- shaderc
-[feature.shaderc.tasks]
-"shaderc" = { cmd = ["cmake", "-DVK_GLSL_COMPILER=glslc", "-DOUT_DIR=vk-shaders", "-P", "cmake/ETLCompileVkShaders.cmake"], description = "Compile the Vulkan Shaders" }
-
-[feature.shaderc.dependencies]
-"shaderc" = "2025.5.*"
-
 [environments]
-shaderc = ["shaderc"]
-updatechangelogs = ["updatechangelogs"]
-validation = ["validation"]
 libclang = ["libclang"]
+validation = ["validation"]
+updatechangelogs = ["updatechangelogs"]

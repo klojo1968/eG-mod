@@ -922,7 +922,7 @@ typedef enum
 	WP_POISON_MINE,            ///< 59	Engineer only - landmine that releases a poison gas cloud when triggered
 	WP_POISON_BOMB,            ///< 60	Covert Ops only - thrown bomb that releases a poison gas cloud (Nitmod weapon 50)
 	WP_M97,                    ///< 61 Winchester M97 pump-action shotgun
-	WP_NUM_WEAPONS             ///< 61
+	WP_NUM_WEAPONS             ///< 62
 	///< NOTE: this cannot be larger than 64 for AI/player weapons!
 } weapon_t;
 
@@ -1568,7 +1568,7 @@ typedef enum
 	EV_PLAYER_HIT,     ///< 131 - hitsound event
 	EV_PLAYER_REVIVE,  ///< 132
 	EV_M97_PUMP,       ///< 133 - Jaymod shotgun pump sound while reloading an empty M97
-	EV_MAX_EVENTS      ///< 132 - just added as an 'endcap'
+	EV_MAX_EVENTS      ///< 134 - just added as an 'endcap'
 } entity_event_t;
 
 extern const char *eventnames[EV_MAX_EVENTS];
@@ -1919,6 +1919,7 @@ typedef enum extWeaponStats_e
 	WS_SYRINGE,        ///< 27
 	WS_TRIPMINE,       ///< 28   -- Engineer tripmine 
 	WS_POISON_MINE,    ///< 29   -- Engineer poison mine (its gas kills are not counted as landmine kills)
+	WS_M97,            ///< 30   -- Winchester M97 shotgun (Jaymod)
 
 	WS_MAX
 } extWeaponStats_t;
@@ -2354,7 +2355,7 @@ typedef enum
 	ANIM_ET_RELOADPRONE,
 	ANIM_ET_NOPOWER,
 	ANIM_ET_ACTIVATE,
-
+	// Jaymod - shotgun reload (begin / loop / end), standing and prone
 	ANIM_ET_RELOAD_SG1,
 	ANIM_ET_RELOAD_SG2,
 	ANIM_ET_RELOAD_SG3,
