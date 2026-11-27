@@ -94,7 +94,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: incomplete-mod-pk3
-          path: build/eGmod/legacy_*.pk3
+          path: build/eGmod/eGmod_*.pk3
           if-no-files-found: error
 
   lnx32-mod:
@@ -310,13 +310,13 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: All-mods
-          path: legacy_*.pk3
+          path: eGmod_*.pk3
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v7
         with:
           name: mod-zip
-          path: etlegacy-mod-*.zip
+          path: eGmod-mod-*.zip
           if-no-files-found: error
 
   upload:
