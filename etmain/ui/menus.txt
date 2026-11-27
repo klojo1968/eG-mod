@@ -132,4 +132,10 @@
 	loadMenu { "ui/ingame_tapout.menu" }
 	loadMenu { "ui/ingame_tapoutlms.menu" }
 	loadMenu { "ui/ingame_vote_bot.menu" }
+	
+	// eGmod
+	loadMenu { "ui/credits_eGmod.menu" }
+	loadMenu { "ui/eGmod_website.menu" }
+
+
 }

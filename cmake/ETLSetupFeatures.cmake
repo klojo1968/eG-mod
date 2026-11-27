@@ -38,7 +38,8 @@ if(BUILD_CLIENT)
 		endif()
 	endif()
 
-	if(FEATURE_RENDERER1 OR FEATURE_RENDERER2)
+	# temp. added vulkan to the list of dependencies
+	if(FEATURE_RENDERER1 OR FEATURE_RENDERER2 OR FEATURE_RENDERER_VULKAN)
 		# ghost target to link all opengl renderer libraries
 		add_library(opengl_renderer_libs INTERFACE)
 		if(NOT BUNDLED_GLEW)
@@ -68,6 +69,7 @@ if(BUILD_CLIENT)
 
 		target_link_libraries(renderer_gl1_libraries INTERFACE opengl_renderer_libs)
 		target_link_libraries(renderer_gl2_libraries INTERFACE opengl_renderer_libs)
+		target_link_libraries(renderer_vulkan_libraries INTERFACE opengl_renderer_libs)
 	endif()
 
 	if(FEATURE_RENDERER_GLES)
@@ -77,46 +79,9 @@ if(BUILD_CLIENT)
 	endif()
 
 	if(FEATURE_RENDERER_VULKAN)
-		# Vulkan API headers only. The renderer never links a Vulkan library,
-		# all entry points are loaded at runtime from the library SDL opens
-		# (the driver's loader libvulkan.so.1 / vulkan-1.dll; on macOS the
-		# bundled MoltenVK or the SDK loader) - see vk_funcs.h.
-		if(BUNDLED_VULKAN_HEADERS)
-			target_link_libraries(renderer_vulkan_libraries INTERFACE bundled_vulkan_headers_int)
-		else()
-			find_path(VULKAN_INCLUDE_DIR
-				NAMES vulkan/vulkan.h
-				HINTS "$ENV{VULKAN_SDK}/include" "$ENV{VULKAN_SDK}/Include"
-				DOC "Directory containing the Vulkan API headers (vulkan/vulkan.h)"
-			)
-			if(NOT VULKAN_INCLUDE_DIR)
-				message(FATAL_ERROR "Vulkan headers (vulkan/vulkan.h) not found - install the Vulkan-Headers package, set VULKAN_INCLUDE_DIR or enable BUNDLED_VULKAN_HEADERS")
-			endif()
-			target_include_directories(renderer_vulkan_libraries INTERFACE "${VULKAN_INCLUDE_DIR}")
-		endif()
-		target_compile_definitions(renderer_vulkan_libraries INTERFACE VK_NO_PROTOTYPES)
-
-		# Shaders: compiled from GLSL to SPIR-V by the build, or precompiled
-		# <name>.spv files (cmake/ETLCompileVkShaders.cmake - the CI compiles
-		# them once for all build machines, which have no GLSL compiler). A
-		# relative VK_SHADER_PREBUILT_DIR is relative to the source directory.
-		set(VK_SHADER_PREBUILT_DIR "" CACHE PATH "Directory with precompiled Vulkan shaders (<name>.spv) to use instead of a GLSL compiler")
-		if(VK_SHADER_PREBUILT_DIR)
-			get_filename_component(VK_SHADER_PREBUILT_DIR_ABS "${VK_SHADER_PREBUILT_DIR}" ABSOLUTE BASE_DIR "${CMAKE_SOURCE_DIR}")
-			message(STATUS "Vulkan shaders: precompiled SPIR-V from ${VK_SHADER_PREBUILT_DIR_ABS}")
-		elseif(NOT BUNDLED_SHADERC)
-			# The find glslc call gets made in the main CMakeLists
-			if(NOT VK_GLSL_COMPILER)
-				message(FATAL_ERROR "No GLSL compiler found - install glslc (shaderc) or glslangValidator (glslang), set VK_GLSL_COMPILER, or set VK_SHADER_PREBUILT_DIR to precompiled shaders (cmake/ETLCompileVkShaders.cmake)")
-			endif()
-			message(STATUS "Vulkan GLSL compiler: ${VK_GLSL_COMPILER}")
-			add_custom_target(glslc_binary)
-			set_target_properties(glslc_binary PROPERTIES
-				GLSLC_EXECUTABLE "${VK_GLSL_COMPILER}"
-			)
-		else()
-			message(STATUS "Defaulting to bundled shaderc compilation")
-		endif()
+		# FIXME: use the vulkan sdk for now, swap to headers only at some point
+		find_package(Vulkan REQUIRED)
+		target_link_libraries(renderer_vulkan_libraries INTERFACE Vulkan::Vulkan)
 	endif()
 
 	if(NOT BUNDLED_SDL)

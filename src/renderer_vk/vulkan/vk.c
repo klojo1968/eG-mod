@@ -281,6 +281,7 @@ typedef struct
 
 	VkSwapchainKHR swapchain;
 	VkFormat swapchainFormat;
+	VkFormat sceneFormat;                                  // swapchainFormat when the scene targets were created
 	VkExtent2D swapchainExtent;
 	uint32_t swapchainImageCount;
 	VkImage swapchainImages[VK_MAX_SWAPCHAIN_IMAGES];
@@ -357,6 +358,7 @@ typedef struct
 	VkSemaphore renderFinishedSemaphores[VK_MAX_SWAPCHAIN_IMAGES]; // per swapchain image
 	qboolean fenceSubmitted[VK_FRAMES_IN_FLIGHT];          // inFlightFences[i] has a submit that signals it
 	qboolean swapchainStale;                               // out of date / resized: rebuild before presenting (VK_RecreateSwapchain)
+	int swapchainFailTime;                                 // ri.Milliseconds() of the first failed rebuild in a row, 0 = none
 	qboolean restartPending;                               // device or surface lost: no submits until the vid_restart (VK_RequestRestart)
 #ifdef VK_EXT_device_fault
 	PFN_vkGetDeviceFaultInfoEXT getDeviceFaultInfo;        // VK_EXT_device_fault, NULL when not supported (VK_LogDeviceFault)
@@ -479,6 +481,7 @@ typedef struct
 	VkDeviceMemory captureMemory;
 	VkDeviceSize captureSize;
 	void *captureMapped;
+	qboolean captureCoherent;                          // else invalidate before reading
 	qboolean captureRequested;
 	qboolean captureReady;
 	uint32_t captureWidth;
@@ -1002,6 +1005,8 @@ static void VK_CheckDeviceLost(VkResult result, const char *what)
 #define VK_FENCE_HANG_STEPS   3
 // a swapchain image that isn't available within this time: skip presenting
 #define VK_ACQUIRE_TIMEOUT_NS 1000000000ull
+// a swapchain rebuild that keeps failing this long (the window not minimized): fatal
+#define VK_SWAPCHAIN_RETRY_MSEC 10000
 
 /**
  * @brief vkWaitForFences() with a finite timeout: a GPU that hangs without the
@@ -1161,7 +1166,13 @@ static qboolean VK_CreateInstance(void)
 
 static qboolean VK_PickPhysicalDeviceAndQueues(void)
 {
+	// the largest push constant block: the scene pipelines' (the UI, gamma
+	// and compute blocks are smaller). Vulkan only guarantees 128 bytes, and
+	// on a device below this every scene pipeline is invalid: drivers fail
+	// to create them (VK_ERROR_UNKNOWN on Android) and the 3D view stays empty
+	const uint32_t   pushConstantsNeeded = sizeof(float) * VK_SCENE_PUSH_FLOATS;
 	uint32_t         deviceCount = 0, i, q;
+	uint32_t         pushConstantsSkipped = 0;
 	VkPhysicalDevice devices[16];
 	VkBool32         presentSupport;
 
@@ -1177,12 +1188,23 @@ static qboolean VK_PickPhysicalDeviceAndQueues(void)
 	}
 	vkEnumeratePhysicalDevices(vk.instance, &deviceCount, devices);
 
-	// pick the first device that has both a graphics and a present queue
+	// pick the first device that has both a graphics and a present queue and
+	// enough push constant space
 	for (i = 0; i < deviceCount; i++)
 	{
-		uint32_t                queueFamilyCount = 0;
-		VkQueueFamilyProperties queueFamilies[32];
-		int                     graphicsFamily = -1, presentFamily = -1;
+		uint32_t                   queueFamilyCount = 0;
+		VkQueueFamilyProperties    queueFamilies[32];
+		VkPhysicalDeviceProperties props;
+		int                        graphicsFamily = -1, presentFamily = -1;
+
+		vkGetPhysicalDeviceProperties(devices[i], &props);
+		if (props.limits.maxPushConstantsSize < pushConstantsNeeded)
+		{
+			Ren_Warning("Vulkan: skipping %s: it allows %u bytes of push constants, the renderer needs %u\n",
+			            props.deviceName, props.limits.maxPushConstantsSize, pushConstantsNeeded);
+			pushConstantsSkipped++;
+			continue;
+		}
 
 		vkGetPhysicalDeviceQueueFamilyProperties(devices[i], &queueFamilyCount, NULL);
 		if (queueFamilyCount > 32)
@@ -1215,7 +1237,15 @@ static qboolean VK_PickPhysicalDeviceAndQueues(void)
 		}
 	}
 
-	Ren_Print("Vulkan: no suitable physical device (graphics+present queue) found\n");
+	if (pushConstantsSkipped)
+	{
+		Ren_Warning("Vulkan: no suitable GPU: the Vulkan renderer needs %u bytes of push constants, "
+		            "more than this GPU allows; use an OpenGL renderer\n", pushConstantsNeeded);
+	}
+	else
+	{
+		Ren_Print("Vulkan: no suitable physical device (graphics+present queue) found\n");
+	}
 	return qfalse;
 }
 
@@ -1511,7 +1541,17 @@ static qboolean VK_PresentWantsClock(void)
 	return (1000.0 / vk.pacing.nominalRefresh > VK_PRESENT_CLOCK_MIN_HZ) ? qtrue : qfalse;
 }
 
-static qboolean VK_CreateSwapchainAndViews(int width, int height)
+/**
+ * @brief Creates the swapchain for the surface's current size and its image
+ * views. oldSwapchain (or VK_NULL_HANDLE) is passed to the driver for the
+ * handover; it is retired by the call even if the creation fails, and the
+ * caller destroys it afterwards.
+ * @return VK_SUCCESS; VK_NOT_READY if the surface is 0x0 (minimized), so no
+ * swapchain can be created now; otherwise the failed call's result. On
+ * failure vk.swapchain is VK_NULL_HANDLE and image views created so far
+ * remain for VK_DestroySwapchain().
+ */
+static VkResult VK_CreateSwapchainAndViews(int width, int height, VkSwapchainKHR oldSwapchain)
 {
 	VkSurfaceCapabilitiesKHR caps;
 	VkSurfaceFormatKHR       formats[32];
@@ -1521,8 +1561,15 @@ static qboolean VK_CreateSwapchainAndViews(int width, int height)
 	VkSwapchainCreateInfoKHR createInfo;
 	uint32_t                 i;
 	uint32_t                 queueFamilyIndices[2];
+	VkResult                 result;
 
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vk.physicalDevice, vk.surface, &caps);
+	vk.swapchain = VK_NULL_HANDLE;
+
+	result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vk.physicalDevice, vk.surface, &caps);
+	if (result != VK_SUCCESS)
+	{
+		return result;
+	}
 
 	// r_swapInterval (renderer1: SDL_GL_SetSwapInterval): 0 = don't wait
 	// for vblank - prefer IMMEDIATE, then MAILBOX; otherwise (or if
@@ -1556,11 +1603,15 @@ static qboolean VK_CreateSwapchainAndViews(int width, int height)
 	Ren_Developer("Vulkan: present mode %s\n", vk.pacing.lock ? (vk.pacing.byClock ? "IMMEDIATE (one present per refresh, by the clock)" : "FIFO (one present per refresh)") :
 	              presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR ? "IMMEDIATE" :
 	              presentMode == VK_PRESENT_MODE_MAILBOX_KHR ? "MAILBOX" : "FIFO (vsync)");
-	vkGetPhysicalDeviceSurfaceFormatsKHR(vk.physicalDevice, vk.surface, &formatCount, formats);
+	result = vkGetPhysicalDeviceSurfaceFormatsKHR(vk.physicalDevice, vk.surface, &formatCount, formats);
+	if (result != VK_SUCCESS && result != VK_INCOMPLETE)
+	{
+		return result;
+	}
 	if (formatCount == 0)
 	{
 		Ren_Print("Vulkan: surface has no formats\n");
-		return qfalse;
+		return VK_ERROR_INITIALIZATION_FAILED;
 	}
 
 	vk.swapchainFormat = formats[0].format;
@@ -1581,6 +1632,12 @@ static qboolean VK_CreateSwapchainAndViews(int width, int height)
 	{
 		extent.width  = (uint32_t)Com_Clamp(caps.minImageExtent.width, caps.maxImageExtent.width, (float)width);
 		extent.height = (uint32_t)Com_Clamp(caps.minImageExtent.height, caps.maxImageExtent.height, (float)height);
+	}
+	// a swapchain can't be 0x0: the window was minimized (possibly after the
+	// caller's own check, e.g. during an alt-tab)
+	if (extent.width == 0 || extent.height == 0)
+	{
+		return VK_NOT_READY;
 	}
 	vk.swapchainExtent = extent;
 
@@ -1630,10 +1687,13 @@ static qboolean VK_CreateSwapchainAndViews(int width, int height)
 	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	createInfo.presentMode    = presentMode;
 	createInfo.clipped        = VK_TRUE;
+	createInfo.oldSwapchain   = oldSwapchain;
 
-	if (!VK_CheckResult(vkCreateSwapchainKHR(vk.device, &createInfo, NULL, &vk.swapchain), "vkCreateSwapchainKHR"))
+	result = vkCreateSwapchainKHR(vk.device, &createInfo, NULL, &vk.swapchain);
+	if (result != VK_SUCCESS)
 	{
-		return qfalse;
+		vk.swapchain = VK_NULL_HANDLE;
+		return result;
 	}
 
 	// the refresh can only be read from a swapchain: create it again if this
@@ -1650,19 +1710,23 @@ static qboolean VK_CreateSwapchainAndViews(int width, int height)
 
 			createInfo.presentMode  = vk.pacing.byClock ? VK_PRESENT_MODE_IMMEDIATE_KHR : VK_PRESENT_MODE_FIFO_KHR;
 			createInfo.oldSwapchain = VK_NULL_HANDLE;
-			if (!VK_CheckResult(vkCreateSwapchainKHR(vk.device, &createInfo, NULL, &vk.swapchain), "vkCreateSwapchainKHR"))
+			result                  = vkCreateSwapchainKHR(vk.device, &createInfo, NULL, &vk.swapchain);
+			if (result != VK_SUCCESS)
 			{
-				return qfalse;
+				vk.swapchain = VK_NULL_HANDLE;
+				return result;
 			}
 		}
 	}
 
-	vkGetSwapchainImagesKHR(vk.device, vk.swapchain, &vk.swapchainImageCount, NULL);
-	if (vk.swapchainImageCount > VK_MAX_SWAPCHAIN_IMAGES)
+	// with no image views yet, VK_DestroySwapchain() only has the swapchain to
+	// destroy if this fails
+	vk.swapchainImageCount = VK_MAX_SWAPCHAIN_IMAGES;
+	result                 = vkGetSwapchainImagesKHR(vk.device, vk.swapchain, &vk.swapchainImageCount, vk.swapchainImages);
+	if (result != VK_SUCCESS && result != VK_INCOMPLETE)
 	{
-		vk.swapchainImageCount = VK_MAX_SWAPCHAIN_IMAGES;
+		return result;
 	}
-	vkGetSwapchainImagesKHR(vk.device, vk.swapchain, &vk.swapchainImageCount, vk.swapchainImages);
 
 	for (i = 0; i < vk.swapchainImageCount; i++)
 	{
@@ -1681,13 +1745,15 @@ static qboolean VK_CreateSwapchainAndViews(int width, int height)
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		if (!VK_CheckResult(vkCreateImageView(vk.device, &viewInfo, NULL, &vk.swapchainImageViews[i]), "vkCreateImageView"))
+		result = vkCreateImageView(vk.device, &viewInfo, NULL, &vk.swapchainImageViews[i]);
+		if (result != VK_SUCCESS)
 		{
-			return qfalse;
+			vk.swapchainImageViews[i] = VK_NULL_HANDLE;
+			return result;
 		}
 	}
 
-	return qtrue;
+	return VK_SUCCESS;
 }
 
 /**
@@ -2027,6 +2093,88 @@ static qboolean VK_CreateSceneColorResources(void)
 	return qtrue;
 }
 
+/**
+ * @brief Creates the present render pass (the swapchain image only, fully
+ * overwritten by the gamma pass) and a framebuffer per swapchain image. These
+ * are the only render objects that depend on the swapchain itself, so a
+ * swapchain rebuild recreates just these (VK_RecreateSwapchain).
+ */
+static qboolean VK_CreatePresentPass(void)
+{
+	VkAttachmentDescription colorAttachment;
+	VkAttachmentReference   colorAttachmentRef;
+	VkSubpassDescription    subpass;
+	VkSubpassDependency     dependency;
+	VkRenderPassCreateInfo  renderPassInfo;
+	VkFramebufferCreateInfo framebufferInfo;
+	uint32_t                i;
+
+	Com_Memset(&colorAttachment, 0, sizeof(colorAttachment));
+	colorAttachment.format         = vk.swapchainFormat;
+	colorAttachment.samples        = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp         = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	Com_Memset(&colorAttachmentRef, 0, sizeof(colorAttachmentRef));
+	colorAttachmentRef.attachment = 0;
+	colorAttachmentRef.layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	Com_Memset(&subpass, 0, sizeof(subpass));
+	subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments    = &colorAttachmentRef;
+
+	Com_Memset(&dependency, 0, sizeof(dependency));
+	dependency.srcSubpass    = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass    = 0;
+	dependency.srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+	Com_Memset(&renderPassInfo, 0, sizeof(renderPassInfo));
+	renderPassInfo.sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassInfo.attachmentCount = 1;
+	renderPassInfo.pAttachments    = &colorAttachment;
+	renderPassInfo.subpassCount    = 1;
+	renderPassInfo.pSubpasses      = &subpass;
+	renderPassInfo.dependencyCount = 1;
+	renderPassInfo.pDependencies   = &dependency;
+
+	if (!VK_CheckResult(vkCreateRenderPass(vk.device, &renderPassInfo, NULL, &vk.presentRenderPass), "vkCreateRenderPass(present)"))
+	{
+		return qfalse;
+	}
+
+	Com_Memset(&framebufferInfo, 0, sizeof(framebufferInfo));
+	framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	framebufferInfo.renderPass      = vk.presentRenderPass;
+	framebufferInfo.attachmentCount = 1;
+	framebufferInfo.width           = vk.swapchainExtent.width;
+	framebufferInfo.height          = vk.swapchainExtent.height;
+	framebufferInfo.layers          = 1;
+
+	for (i = 0; i < vk.swapchainImageCount; i++)
+	{
+		framebufferInfo.pAttachments = &vk.swapchainImageViews[i];
+
+		if (!VK_CheckResult(vkCreateFramebuffer(vk.device, &framebufferInfo, NULL, &vk.swapchainFramebuffers[i]), "vkCreateFramebuffer"))
+		{
+			return qfalse;
+		}
+	}
+
+	return qtrue;
+}
+
+/**
+ * @brief Creates the scene targets (depth, scene color, MSAA color, soft
+ * depth), the scene render passes and framebuffer, and then the present pass.
+ */
 static qboolean VK_CreateRenderPassAndFramebuffers(void)
 {
 	VkAttachmentDescription colorAttachment;
@@ -2040,10 +2188,10 @@ static qboolean VK_CreateRenderPassAndFramebuffers(void)
 	VkRenderPassCreateInfo  renderPassInfo;
 	VkFramebufferCreateInfo framebufferInfo;
 	VkImageView             fbAttachments[3];
-	uint32_t                i;
 	qboolean                msaa = (vk.sampleCount != VK_SAMPLE_COUNT_1_BIT) ? qtrue : qfalse;
 
 	vk.sceneExtent = vk.sceneSize.width ? vk.sceneSize : vk.swapchainExtent;
+	vk.sceneFormat = vk.swapchainFormat;
 
 	if (!VK_CreateDepthResources() || !VK_CreateSceneColorResources())
 	{
@@ -2192,50 +2340,7 @@ static qboolean VK_CreateRenderPassAndFramebuffers(void)
 		return qfalse;
 	}
 
-	// --- present render pass: swapchain color only, fully overwritten by
-	// the gamma pass
-	colorAttachment.loadOp        = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	subpass.pDepthStencilAttachment = NULL;
-	subpass.pResolveAttachments     = NULL;
-	colorAttachment.samples         = VK_SAMPLE_COUNT_1_BIT;
-
-	Com_Memset(dependencies, 0, sizeof(dependencies));
-	dependencies[0].srcSubpass    = VK_SUBPASS_EXTERNAL;
-	dependencies[0].dstSubpass    = 0;
-	dependencies[0].srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[0].srcAccessMask = 0;
-	dependencies[0].dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments    = &colorAttachment;
-	renderPassInfo.dependencyCount = 1;
-
-	if (!VK_CheckResult(vkCreateRenderPass(vk.device, &renderPassInfo, NULL, &vk.presentRenderPass), "vkCreateRenderPass(present)"))
-	{
-		return qfalse;
-	}
-
-	for (i = 0; i < vk.swapchainImageCount; i++)
-	{
-		fbAttachments[0] = vk.swapchainImageViews[i];
-
-		framebufferInfo.renderPass      = vk.presentRenderPass;
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments    = fbAttachments;
-		framebufferInfo.width           = vk.swapchainExtent.width;
-		framebufferInfo.height          = vk.swapchainExtent.height;
-
-		if (!VK_CheckResult(vkCreateFramebuffer(vk.device, &framebufferInfo, NULL, &vk.swapchainFramebuffers[i]), "vkCreateFramebuffer"))
-		{
-			return qfalse;
-		}
-	}
-
-	return qtrue;
+	return VK_CreatePresentPass();
 }
 
 /**
@@ -2389,11 +2494,78 @@ static qboolean VK_CreatePresentResources(void)
 	return qtrue;
 }
 
+/**
+ * @brief Destroys the semaphores of the acquire/submit/present chain. The
+ * caller has waited for the device to go idle.
+ */
+static void VK_DestroyFrameSemaphores(void)
+{
+	int i;
+
+	for (i = 0; i < VK_FRAMES_IN_FLIGHT; i++)
+	{
+		if (vk.imageAvailableSemaphores[i] != VK_NULL_HANDLE)
+		{
+			vkDestroySemaphore(vk.device, vk.imageAvailableSemaphores[i], NULL);
+			vk.imageAvailableSemaphores[i] = VK_NULL_HANDLE;
+		}
+		if (vk.sceneDoneSemaphores[i] != VK_NULL_HANDLE)
+		{
+			vkDestroySemaphore(vk.device, vk.sceneDoneSemaphores[i], NULL);
+			vk.sceneDoneSemaphores[i] = VK_NULL_HANDLE;
+		}
+	}
+	for (i = 0; i < VK_MAX_SWAPCHAIN_IMAGES; i++)
+	{
+		if (vk.renderFinishedSemaphores[i] != VK_NULL_HANDLE)
+		{
+			vkDestroySemaphore(vk.device, vk.renderFinishedSemaphores[i], NULL);
+			vk.renderFinishedSemaphores[i] = VK_NULL_HANDLE;
+		}
+	}
+	vk.imageAvailableSemaphore = VK_NULL_HANDLE;
+	vk.renderFinishedSemaphore = VK_NULL_HANDLE;
+}
+
+/**
+ * @brief Creates the semaphores of the acquire/submit/present chain: image
+ * available and scene done per frame slot, render finished per swapchain
+ * image. Created again on every swapchain rebuild (VK_RecreateSwapchain).
+ */
+static qboolean VK_CreateFrameSemaphores(void)
+{
+	VkSemaphoreCreateInfo semaphoreInfo;
+	int                   i;
+
+	Com_Memset(&semaphoreInfo, 0, sizeof(semaphoreInfo));
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	for (i = 0; i < VK_FRAMES_IN_FLIGHT; i++)
+	{
+		if (!VK_CheckResult(vkCreateSemaphore(vk.device, &semaphoreInfo, NULL, &vk.imageAvailableSemaphores[i]), "vkCreateSemaphore(imageAvailable)") ||
+		    !VK_CheckResult(vkCreateSemaphore(vk.device, &semaphoreInfo, NULL, &vk.sceneDoneSemaphores[i]), "vkCreateSemaphore(sceneDone)"))
+		{
+			return qfalse;
+		}
+	}
+	for (i = 0; i < VK_MAX_SWAPCHAIN_IMAGES; i++)
+	{
+		if (!VK_CheckResult(vkCreateSemaphore(vk.device, &semaphoreInfo, NULL, &vk.renderFinishedSemaphores[i]), "vkCreateSemaphore(renderFinished)"))
+		{
+			return qfalse;
+		}
+	}
+	// VK_BeginFrame() set the current frame slot's alias before a rebuild
+	vk.imageAvailableSemaphore = vk.imageAvailableSemaphores[vk.frameIndex];
+	vk.renderFinishedSemaphore = vk.renderFinishedSemaphores[0];
+
+	return qtrue;
+}
+
 static qboolean VK_CreateCommandObjects(void)
 {
 	VkCommandPoolCreateInfo     poolInfo;
 	VkCommandBufferAllocateInfo allocInfo;
-	VkSemaphoreCreateInfo       semaphoreInfo;
 	VkFenceCreateInfo           fenceInfo;
 	int                         i;
 
@@ -2421,42 +2593,27 @@ static qboolean VK_CreateCommandObjects(void)
 	vk.commandBuffer = vk.commandBuffers[0];
 	vk.frameIndex    = VK_FRAMES_IN_FLIGHT - 1; // VK_BeginFrame() advances to slot 0 first
 
-	Com_Memset(&semaphoreInfo, 0, sizeof(semaphoreInfo));
-	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
 	Com_Memset(&fenceInfo, 0, sizeof(fenceInfo));
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 	for (i = 0; i < VK_FRAMES_IN_FLIGHT; i++)
 	{
-		if (!VK_CheckResult(vkCreateSemaphore(vk.device, &semaphoreInfo, NULL, &vk.imageAvailableSemaphores[i]), "vkCreateSemaphore(imageAvailable)") ||
-		    !VK_CheckResult(vkCreateSemaphore(vk.device, &semaphoreInfo, NULL, &vk.sceneDoneSemaphores[i]), "vkCreateSemaphore(sceneDone)") ||
-		    !VK_CheckResult(vkCreateFence(vk.device, &fenceInfo, NULL, &vk.inFlightFences[i]), "vkCreateFence"))
+		if (!VK_CheckResult(vkCreateFence(vk.device, &fenceInfo, NULL, &vk.inFlightFences[i]), "vkCreateFence"))
 		{
 			return qfalse;
 		}
 	}
-	for (i = 0; i < VK_MAX_SWAPCHAIN_IMAGES; i++)
-	{
-		if (!VK_CheckResult(vkCreateSemaphore(vk.device, &semaphoreInfo, NULL, &vk.renderFinishedSemaphores[i]), "vkCreateSemaphore(renderFinished)"))
-		{
-			return qfalse;
-		}
-	}
-	vk.imageAvailableSemaphore = vk.imageAvailableSemaphores[0];
-	vk.renderFinishedSemaphore = vk.renderFinishedSemaphores[0];
-	vk.inFlightFence           = vk.inFlightFences[0];
+	vk.inFlightFence = vk.inFlightFences[0];
 
-	return qtrue;
+	return VK_CreateFrameSemaphores();
 }
 
 /**
  * @brief Finds a device memory type index matching both the given
- * memory-type bitmask (from a VkMemoryRequirements) and the requested
- * property flags (host-visible, device-local, ...).
+ * memory-type bitmask and property flags; qfalse if there is none.
  */
-static uint32_t VK_FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+static qboolean VK_TryFindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, uint32_t *index)
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	uint32_t                         i;
@@ -2467,8 +2624,26 @@ static uint32_t VK_FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags pro
 	{
 		if ((typeFilter & (1u << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
 		{
-			return i;
+			*index = i;
+			return qtrue;
 		}
+	}
+
+	return qfalse;
+}
+
+/**
+ * @brief Finds a device memory type index matching both the given
+ * memory-type bitmask (from a VkMemoryRequirements) and the requested
+ * property flags (host-visible, device-local, ...).
+ */
+static uint32_t VK_FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+	uint32_t index;
+
+	if (VK_TryFindMemoryType(typeFilter, properties, &index))
+	{
+		return index;
 	}
 
 	Ren_Print("Vulkan: failed to find a suitable memory type\n");
@@ -2476,14 +2651,18 @@ static uint32_t VK_FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags pro
 }
 
 /**
- * @brief Allocates a VkBuffer + backing VkDeviceMemory pair with the given
- * usage/property flags.
+ * @brief Allocates a VkBuffer + backing VkDeviceMemory pair, from a memory
+ * type with the preferred property flags if the buffer can use one,
+ * otherwise from one with the required flags. *chosen (optional) gets the
+ * flags of the memory type used.
  */
-static qboolean VK_CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *memory)
+static qboolean VK_CreateBufferPreferred(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags preferred, VkMemoryPropertyFlags properties,
+                                         VkBuffer *buffer, VkDeviceMemory *memory, VkMemoryPropertyFlags *chosen)
 {
-	VkBufferCreateInfo   bufferInfo;
-	VkMemoryRequirements memRequirements;
-	VkMemoryAllocateInfo allocInfo;
+	VkPhysicalDeviceMemoryProperties memProperties;
+	VkBufferCreateInfo               bufferInfo;
+	VkMemoryRequirements             memRequirements;
+	VkMemoryAllocateInfo             allocInfo;
 
 	Com_Memset(&bufferInfo, 0, sizeof(bufferInfo));
 	bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -2499,9 +2678,17 @@ static qboolean VK_CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkM
 	vkGetBufferMemoryRequirements(vk.device, *buffer, &memRequirements);
 
 	Com_Memset(&allocInfo, 0, sizeof(allocInfo));
-	allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize  = memRequirements.size;
-	allocInfo.memoryTypeIndex = VK_FindMemoryType(memRequirements.memoryTypeBits, properties);
+	allocInfo.sType          = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memRequirements.size;
+	if (!VK_TryFindMemoryType(memRequirements.memoryTypeBits, preferred, &allocInfo.memoryTypeIndex))
+	{
+		allocInfo.memoryTypeIndex = VK_FindMemoryType(memRequirements.memoryTypeBits, properties);
+	}
+	if (chosen)
+	{
+		vkGetPhysicalDeviceMemoryProperties(vk.physicalDevice, &memProperties);
+		*chosen = memProperties.memoryTypes[allocInfo.memoryTypeIndex].propertyFlags;
+	}
 
 	if (!VK_CheckResult(vkAllocateMemory(vk.device, &allocInfo, NULL, memory), "vkAllocateMemory"))
 	{
@@ -2513,6 +2700,15 @@ static qboolean VK_CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkM
 	vkBindBufferMemory(vk.device, *buffer, *memory, 0);
 
 	return qtrue;
+}
+
+/**
+ * @brief Allocates a VkBuffer + backing VkDeviceMemory pair with the given
+ * usage/property flags.
+ */
+static qboolean VK_CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *memory)
+{
+	return VK_CreateBufferPreferred(size, usage, properties, properties, buffer, memory, NULL);
 }
 
 /**
@@ -5008,13 +5204,17 @@ void VK_ClearPortalClip(void)
  * VK_CreatePresentResources() created (render passes, framebuffers, scene
  * color/MSAA/depth targets, gamma pipeline), keeping the swapchain.
  */
-static void VK_DestroySceneTargets(void)
+/**
+ * @brief Destroys what VK_CreatePresentPass() and VK_CreatePresentResources()
+ * create: the swapchain framebuffers, the present render pass, the gamma
+ * pipeline and the descriptor set it samples the scene color image with. The
+ * caller has waited for the device to go idle.
+ */
+static void VK_DestroyPresentTargets(void)
 {
 	uint32_t i;
 
-	VK_CheckDeviceLost(vkDeviceWaitIdle(vk.device), "vkDeviceWaitIdle");
-
-	for (i = 0; i < vk.swapchainImageCount; i++)
+	for (i = 0; i < VK_MAX_SWAPCHAIN_IMAGES; i++)
 	{
 		if (vk.swapchainFramebuffers[i] != VK_NULL_HANDLE)
 		{
@@ -5022,6 +5222,32 @@ static void VK_DestroySceneTargets(void)
 			vk.swapchainFramebuffers[i] = VK_NULL_HANDLE;
 		}
 	}
+	if (vk.sceneColorDescriptor != VK_NULL_HANDLE)
+	{
+		vkFreeDescriptorSets(vk.device, vk.uiDescriptorPool, 1, &vk.sceneColorDescriptor);
+		vk.sceneColorDescriptor = VK_NULL_HANDLE;
+	}
+	if (vk.gammaPipeline != VK_NULL_HANDLE)
+	{
+		vkDestroyPipeline(vk.device, vk.gammaPipeline, NULL);
+		vk.gammaPipeline = VK_NULL_HANDLE;
+	}
+	if (vk.presentRenderPass != VK_NULL_HANDLE)
+	{
+		vkDestroyRenderPass(vk.device, vk.presentRenderPass, NULL);
+		vk.presentRenderPass = VK_NULL_HANDLE;
+	}
+}
+
+/**
+ * @brief Destroys the scene targets and render passes, and with them the
+ * present targets (the gamma pass samples the scene color image).
+ */
+static void VK_DestroySceneTargets(void)
+{
+	VK_CheckDeviceLost(vkDeviceWaitIdle(vk.device), "vkDeviceWaitIdle");
+
+	VK_DestroyPresentTargets();
 
 	if (vk.renderPass != VK_NULL_HANDLE)
 	{
@@ -5066,26 +5292,11 @@ static void VK_DestroySceneTargets(void)
 		vk.softDepthMemory = VK_NULL_HANDLE;
 	}
 
-	// Offscreen scene target + present pass resources
-	if (vk.sceneColorDescriptor != VK_NULL_HANDLE)
-	{
-		vkFreeDescriptorSets(vk.device, vk.uiDescriptorPool, 1, &vk.sceneColorDescriptor);
-		vk.sceneColorDescriptor = VK_NULL_HANDLE;
-	}
-	if (vk.gammaPipeline != VK_NULL_HANDLE)
-	{
-		vkDestroyPipeline(vk.device, vk.gammaPipeline, NULL);
-		vk.gammaPipeline = VK_NULL_HANDLE;
-	}
+	// Offscreen scene target
 	if (vk.sceneFramebuffer != VK_NULL_HANDLE)
 	{
 		vkDestroyFramebuffer(vk.device, vk.sceneFramebuffer, NULL);
 		vk.sceneFramebuffer = VK_NULL_HANDLE;
-	}
-	if (vk.presentRenderPass != VK_NULL_HANDLE)
-	{
-		vkDestroyRenderPass(vk.device, vk.presentRenderPass, NULL);
-		vk.presentRenderPass = VK_NULL_HANDLE;
 	}
 	if (vk.sceneColorView != VK_NULL_HANDLE)
 	{
@@ -5135,16 +5346,13 @@ static void VK_DestroySceneTargets(void)
 	}
 }
 
-static void VK_DestroySwapchainObjects(void)
+/**
+ * @brief Destroys the swapchain and its image views. The present targets that
+ * use them must be gone already (VK_DestroyPresentTargets).
+ */
+static void VK_DestroySwapchain(void)
 {
 	uint32_t i;
-
-	if (vk.device == VK_NULL_HANDLE)
-	{
-		return;
-	}
-
-	VK_DestroySceneTargets();
 
 	for (i = 0; i < vk.swapchainImageCount; i++)
 	{
@@ -5162,12 +5370,27 @@ static void VK_DestroySwapchainObjects(void)
 	}
 }
 
+static void VK_DestroySwapchainObjects(void)
+{
+	if (vk.device == VK_NULL_HANDLE)
+	{
+		return;
+	}
+
+	VK_DestroySceneTargets();
+	VK_DestroySwapchain();
+}
+
 qboolean VK_ResizeSwapchain(int width, int height)
 {
+	VkResult result;
+
 	VK_DestroySwapchainObjects();
 
-	if (!VK_CreateSwapchainAndViews(width, height))
+	result = VK_CreateSwapchainAndViews(width, height, VK_NULL_HANDLE);
+	if (result != VK_SUCCESS)
 	{
+		Ren_Print("Vulkan: couldn't create the swapchain (VkResult %d)\n", (int)result);
 		return qfalse;
 	}
 	if (!VK_CreateRenderPassAndFramebuffers())
@@ -5212,19 +5435,30 @@ static qboolean VK_SwapchainSizeChanged(void)
  * resolution, which doesn't follow the window (the gamma pass scales the
  * scene to the new size). While the window is minimized (a 0x0 surface) no
  * swapchain can be created: it stays stale and VK_EndFrame() doesn't present.
+ *
+ * A failed swapchain create is retried every frame: during an alt-tab the
+ * window can be minimized or change display mode between the surface query
+ * and the create, and drivers then fail it for a moment (OUT_OF_DATE,
+ * NATIVE_WINDOW_IN_USE, INITIALIZATION_FAILED). Meanwhile there is no
+ * swapchain, frames are rendered into the scene targets but not presented.
+ * Only a create that keeps failing for VK_SWAPCHAIN_RETRY_MSEC is fatal.
  * @return qtrue if the swapchain can be presented to again
  */
 static qboolean VK_RecreateSwapchain(void)
 {
 	VkSurfaceCapabilitiesKHR caps;
+	VkSwapchainKHR           oldSwapchain;
 	VkResult                 result;
+	qboolean                 ok;
+	int                      now;
 
 	result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vk.physicalDevice, vk.surface, &caps);
 	VK_CheckDeviceLost(result, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
 	VK_CheckSurfaceLost(result, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
 	if (result != VK_SUCCESS || caps.currentExtent.width == 0 || caps.currentExtent.height == 0)
 	{
-		return qfalse; // minimized: try again next frame (or lost: the vid_restart rebuilds it)
+		vk.swapchainFailTime = 0; // minimized doesn't count as failing
+		return qfalse;            // try again next frame (or lost: the vid_restart rebuilds it)
 	}
 
 	VK_CheckDeviceLost(vkDeviceWaitIdle(vk.device), "vkDeviceWaitIdle");
@@ -5233,16 +5467,83 @@ static qboolean VK_RecreateSwapchain(void)
 		return qfalse;
 	}
 
+	// New semaphores for the new swapchain. The spec has a present rejected
+	// with OUT_OF_DATE still consume its wait semaphore, but some drivers
+	// don't: the semaphore would stay signaled and the next submit signaling
+	// it again can hang the GPU (a TDR on Windows). The device is idle, so
+	// nothing waits on the old ones any more.
+	VK_DestroyFrameSemaphores();
+	if (!VK_CreateFrameSemaphores())
+	{
+		Ren_Fatal("Vulkan: couldn't recreate the frame semaphores after the window changed.\n");
+	}
+
 	if (!vk.sceneSize.width)
 	{
 		vk.sceneSize = vk.sceneExtent;
 	}
 
-	if (!VK_ResizeSwapchain((int)vk.swapchainExtent.width, (int)vk.swapchainExtent.height))
+	// Only the swapchain and what renders into it are rebuilt. The scene
+	// targets don't depend on the window: freeing and reallocating hundreds of
+	// MB of them on every alt-tab fragments video memory, and later allocations
+	// can end up in slower system memory. They are only rebuilt if the
+	// swapchain format changed, which their color format follows.
+	VK_DestroyPresentTargets();
+
+	// the old swapchain goes to the create for the handover, which retires it
+	// (even if the create fails); its image views go first
+	oldSwapchain = vk.swapchain;
+	vk.swapchain = VK_NULL_HANDLE;
+	VK_DestroySwapchain();
+	result = VK_CreateSwapchainAndViews((int)vk.swapchainExtent.width, (int)vk.swapchainExtent.height, oldSwapchain);
+	if (oldSwapchain != VK_NULL_HANDLE)
 	{
-		Ren_Fatal("Vulkan: couldn't recreate the swapchain after the window changed.\n");
+		vkDestroySwapchainKHR(vk.device, oldSwapchain, NULL);
 	}
 
+	if (result != VK_SUCCESS)
+	{
+		VK_CheckDeviceLost(result, "vkCreateSwapchainKHR");
+		VK_CheckSurfaceLost(result, "vkCreateSwapchainKHR");
+		VK_DestroySwapchain(); // image views created before the failure
+		if (vk.restartPending || result == VK_NOT_READY)
+		{
+			vk.swapchainFailTime = 0; // lost (vid_restart follows) or minimized after all
+			return qfalse;
+		}
+
+		now = ri.Milliseconds();
+		if (!vk.swapchainFailTime)
+		{
+			vk.swapchainFailTime = now ? now : 1;
+			Ren_Print("Vulkan: couldn't recreate the swapchain (VkResult %d), retrying\n", (int)result);
+		}
+		else if (now - vk.swapchainFailTime > VK_SWAPCHAIN_RETRY_MSEC)
+		{
+			Ren_Fatal("Vulkan: couldn't recreate the swapchain after the window changed (VkResult %d).\n", (int)result);
+		}
+		return qfalse;
+	}
+
+	if (vk.swapchainFormat != vk.sceneFormat)
+	{
+		VK_DestroySceneTargets();
+		ok = VK_CreateRenderPassAndFramebuffers();
+	}
+	else
+	{
+		ok = VK_CreatePresentPass();
+	}
+	if (!ok || !VK_CreatePresentResources())
+	{
+		Ren_Fatal("Vulkan: couldn't recreate the render targets after the window changed.\n");
+	}
+
+	if (vk.swapchainFailTime)
+	{
+		Ren_Print("Vulkan: swapchain recreated after %d ms of retries\n", ri.Milliseconds() - vk.swapchainFailTime);
+		vk.swapchainFailTime = 0;
+	}
 	vk.swapchainStale = qfalse;
 	Ren_Developer("Vulkan: swapchain recreated, window %ux%u, render resolution %ux%u\n", vk.swapchainExtent.width,
 	              vk.swapchainExtent.height, vk.sceneExtent.width, vk.sceneExtent.height);
@@ -5802,26 +6103,12 @@ void VK_Shutdown(void)
 
 		for (i = 0; i < VK_FRAMES_IN_FLIGHT; i++)
 		{
-			if (vk.imageAvailableSemaphores[i] != VK_NULL_HANDLE)
-			{
-				vkDestroySemaphore(vk.device, vk.imageAvailableSemaphores[i], NULL);
-			}
-			if (vk.sceneDoneSemaphores[i] != VK_NULL_HANDLE)
-			{
-				vkDestroySemaphore(vk.device, vk.sceneDoneSemaphores[i], NULL);
-			}
 			if (vk.inFlightFences[i] != VK_NULL_HANDLE)
 			{
 				vkDestroyFence(vk.device, vk.inFlightFences[i], NULL);
 			}
 		}
-		for (i = 0; i < VK_MAX_SWAPCHAIN_IMAGES; i++)
-		{
-			if (vk.renderFinishedSemaphores[i] != VK_NULL_HANDLE)
-			{
-				vkDestroySemaphore(vk.device, vk.renderFinishedSemaphores[i], NULL);
-			}
-		}
+		VK_DestroyFrameSemaphores();
 	}
 	if (vk.commandPool != VK_NULL_HANDLE)
 	{
@@ -6187,62 +6474,13 @@ void VK_BeginFrame(void)
 }
 
 /**
- * @brief Debug capture: writes the frame VK_EndFrame() just copied into the
- * capture buffer to a PPM file for offline visual inspection (our own
- * rendered image, not the user's display).
- */
-static void VK_DebugWriteCapturePPM(const char *path)
-{
-	const byte *src = (const byte *)vk.captureMapped;
-	qboolean   bgra = (vk.captureFormat == VK_FORMAT_B8G8R8A8_UNORM || vk.captureFormat == VK_FORMAT_B8G8R8A8_SRGB);
-	byte       *row;
-	FILE       *f;
-	uint32_t   x, y;
-
-	if (!src)
-	{
-		return;
-	}
-
-	row = malloc((size_t)vk.captureWidth * 3);
-	f   = fopen(path, "wb");
-	if (!row || !f)
-	{
-		free(row);
-		if (f)
-		{
-			fclose(f);
-		}
-		Ren_Print("VK_DebugWriteCapturePPM: could not write %s\n", path);
-		return;
-	}
-
-	fprintf(f, "P6\n%u %u\n255\n", vk.captureWidth, vk.captureHeight);
-	for (y = 0; y < vk.captureHeight; y++)
-	{
-		const byte *p = src + (size_t)y * vk.captureWidth * 4;
-
-		for (x = 0; x < vk.captureWidth; x++, p += 4)
-		{
-			row[x * 3 + 0] = bgra ? p[2] : p[0];
-			row[x * 3 + 1] = p[1];
-			row[x * 3 + 2] = bgra ? p[0] : p[2];
-		}
-		fwrite(row, 3, vk.captureWidth, f);
-	}
-	fclose(f);
-	free(row);
-
-	Ren_Print("VK_DebugWriteCapturePPM: wrote %s\n", path);
-}
-
-/**
  * @brief (re)creates the persistently mapped capture buffer
  * for the current swapchain size.
  */
 static qboolean VK_EnsureCaptureBuffer(void)
 {
-	VkDeviceSize size = (VkDeviceSize)vk.swapchainExtent.width * vk.swapchainExtent.height * 4;
+	VkDeviceSize          size = (VkDeviceSize)vk.swapchainExtent.width * vk.swapchainExtent.height * 4;
+	VkMemoryPropertyFlags flags;
 
 	if (vk.captureBuffer != VK_NULL_HANDLE && vk.captureSize == size)
 	{
@@ -6259,16 +6497,23 @@ static qboolean VK_EnsureCaptureBuffer(void)
 		vk.captureMapped = NULL;
 	}
 
-	if (!VK_CreateBuffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-	                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-	                     &vk.captureBuffer, &vk.captureMemory))
+	// the CPU reads the whole frame back: uncached (write-combined) memory,
+	// the first host-visible type on most discrete GPUs, makes every load
+	// a slow uncached read, and a screenshot then stalls the game for up
+	// to a second
+	if (!VK_CreateBufferPreferred(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+	                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+	                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+	                              &vk.captureBuffer, &vk.captureMemory, &flags))
 	{
 		vk.captureBuffer = VK_NULL_HANDLE;
 		return qfalse;
 	}
 
 	vkMapMemory(vk.device, vk.captureMemory, 0, size, 0, &vk.captureMapped);
-	vk.captureSize = size;
+	vk.captureSize     = size;
+	vk.captureCoherent = (flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
+	Ren_Developer("Vulkan: capture buffer in %s memory\n", (flags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) ? "cached" : "uncached");
 
 	return qtrue;
 }
@@ -6551,6 +6796,8 @@ void VK_ReadCapturedFrameRGB(byte *dst, int width, int height, int padlen)
 {
 	const byte *src = (const byte *)vk.captureMapped;
 	qboolean   bgra = (vk.captureFormat == VK_FORMAT_B8G8R8A8_UNORM || vk.captureFormat == VK_FORMAT_B8G8R8A8_SRGB);
+	size_t     rowSize;
+	byte       *rowCopy;
 	int        x, y;
 
 	if (!vk.captureReady || !src)
@@ -6567,11 +6814,18 @@ void VK_ReadCapturedFrameRGB(byte *dst, int width, int height, int padlen)
 		height = (int)vk.captureHeight;
 	}
 
+	// each row is copied out of the mapped memory in one block before the
+	// per-byte swizzle, which would be slow on uncached memory (the fallback
+	// when the device has no cached host-visible memory)
+	rowSize = (size_t)width * 4;
+	rowCopy = ri.Hunk_AllocateTempMemory(rowSize);
+
 	for (y = 0; y < height; y++)
 	{
 		// GL row 0 is the bottom of the image, Vulkan row 0 the top
-		const byte *row = src + (size_t)(vk.captureHeight - 1 - y) * vk.captureWidth * 4;
+		const byte *row = rowCopy;
 
+		Com_Memcpy(rowCopy, src + (size_t)(vk.captureHeight - 1 - y) * vk.captureWidth * 4, rowSize);
 		for (x = 0; x < width; x++, row += 4)
 		{
 			*dst++ = bgra ? row[2] : row[0];
@@ -6580,6 +6834,8 @@ void VK_ReadCapturedFrameRGB(byte *dst, int width, int height, int padlen)
 		}
 		dst += padlen;
 	}
+
+	ri.Hunk_FreeTempMemory(rowCopy);
 }
 
 /**
@@ -6596,9 +6852,7 @@ void VK_EndFrame(void)
 	VkCommandBuffer      presentCB;
 	VkSubmitInfo         submitInfo;
 	VkPresentInfoKHR     presentInfo;
-	VkPipelineStageFlags waitStage         = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	static int           debugFrameCount   = 0;
-	const char           *debugCapturePath = NULL;
+	VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	qboolean             captureThisFrame;
 	qboolean             present, splitPresent;
 
@@ -6611,15 +6865,7 @@ void VK_EndFrame(void)
 
 	vkCmdEndRenderPass(vk.commandBuffer);
 
-	// debug capture of frame 200 (r_vkCaptureFrame200). It shares the
-	// screenshot capture below and is skipped while a captured screenshot
-	// frame is still unread.
-	debugFrameCount++;
-	if (debugFrameCount == 200 && r_vkCaptureFrame200->integer && !vk.captureReady)
-	{
-		debugCapturePath = r_vkCapturePath->string;
-	}
-	captureThisFrame = (vk.captureRequested || debugCapturePath) && VK_EnsureCaptureBuffer();
+	captureThisFrame = vk.captureRequested && VK_EnsureCaptureBuffer();
 
 	// a captured frame is read from the swapchain image, so it is always presented
 	present = (captureThisFrame || VK_PresentDue()) && !vk.swapchainStale && !vk.restartPending;
@@ -6713,6 +6959,7 @@ void VK_EndFrame(void)
 	if (captureThisFrame)
 	{
 		VkImageMemoryBarrier barrier;
+		VkMemoryBarrier      hostBarrier;
 		VkBufferImageCopy    region;
 
 		Com_Memset(&barrier, 0, sizeof(barrier));
@@ -6738,6 +6985,14 @@ void VK_EndFrame(void)
 		region.imageExtent.depth           = 1;
 		vkCmdCopyImageToBuffer(presentCB, vk.swapchainImages[vk.currentImageIndex], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 		                       vk.captureBuffer, 1, &region);
+
+		// make the copy visible to the CPU reads after the fence wait
+		Com_Memset(&hostBarrier, 0, sizeof(hostBarrier));
+		hostBarrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+		hostBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		hostBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+		vkCmdPipelineBarrier(presentCB, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT,
+		                     0, 1, &hostBarrier, 0, NULL, 0, NULL);
 
 		barrier.oldLayout     = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 		barrier.newLayout     = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
@@ -6895,21 +7150,21 @@ void VK_EndFrame(void)
 	{
 		// the fence stays signaled, so VK_BeginFrame()'s wait returns at once
 		VK_WaitForFence(vk.inFlightFence, "vkWaitForFences(capture)");
-		vk.captureWidth  = vk.swapchainExtent.width;
-		vk.captureHeight = vk.swapchainExtent.height;
-		vk.captureFormat = vk.swapchainFormat;
-
-		if (debugCapturePath)
+		if (!vk.captureCoherent)
 		{
-			VK_DebugWriteCapturePPM(debugCapturePath);
-		}
+			VkMappedMemoryRange range;
 
-		// a debug-only capture must not hand a frame to a later screenshot
-		if (vk.captureRequested)
-		{
-			vk.captureReady     = qtrue;
-			vk.captureRequested = qfalse;
+			Com_Memset(&range, 0, sizeof(range));
+			range.sType  = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+			range.memory = vk.captureMemory;
+			range.size   = VK_WHOLE_SIZE;
+			vkInvalidateMappedMemoryRanges(vk.device, 1, &range);
 		}
+		vk.captureWidth     = vk.swapchainExtent.width;
+		vk.captureHeight    = vk.swapchainExtent.height;
+		vk.captureFormat    = vk.swapchainFormat;
+		vk.captureReady     = qtrue;
+		vk.captureRequested = qfalse;
 	}
 }
 
